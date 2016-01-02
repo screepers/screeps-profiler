@@ -83,7 +83,6 @@ function hookUpPrototypes() {
   });
 }
 
-var _isProfiling = undefined;
 var Profiler = {
   printProfile() {
     console.log(Profiler.output());
@@ -166,10 +165,7 @@ var Profiler = {
   },
 
   isProfiling() {
-    if (_isProfiling === undefined) {
-      _isProfiling = enabled && !!Memory.profiler && Game.time <= Memory.profiler.disableTick;
-    }
-    return _isProfiling;
+    return enabled && !!Memory.profiler && Game.time <= Memory.profiler.disableTick;
   },
 
   type() {

@@ -1,5 +1,6 @@
 var usedOnStart = 0;
 var enabled = false;
+var depth = 0;
 
 function setupProfiler() {
   Game.profiler = {
@@ -48,8 +49,30 @@ function getFilter() {
   return Memory.profiler.filter;
 }
 
+function wrapFunction(name, originalFunction) {
+  return function() {
+    if (Profiler.isProfiling()) {
+      var nameMatchesFilter = name === getFilter();
+      var start = Game.getUsedCpu();
+      if (nameMatchesFilter) {
+        depth++;
+      }
+      var result = originalFunction.apply(this, arguments);
+      if (depth > 0 || !getFilter()) {
+        var end = Game.getUsedCpu();
+        Profiler.record(name, end - start);
+      }
+      if (nameMatchesFilter) {
+        depth--;
+      }
+      return result;
+    } else {
+      return originalFunction.apply(this, arguments);
+    }
+  };
+}
+
 function hookUpPrototypes() {
-  var depth = 0;
   Profiler.prototypes.forEach(function eachPrototype(proto) {
     var foundProto = proto.val.prototype ? proto.val.prototype : proto.val;
     Object.keys(foundProto).forEach(function eachKeyOnPrototype(prototypeFunctionName) {
@@ -57,26 +80,7 @@ function hookUpPrototypes() {
       try {
         if (typeof foundProto[prototypeFunctionName] === 'function' && prototypeFunctionName !== 'getUsedCpu') {
           var originalFunction = foundProto[prototypeFunctionName];
-          foundProto[prototypeFunctionName] = function() {
-            if (Profiler.isProfiling()) {
-              var keyMatchesFilter = key === getFilter();
-              var start = Game.getUsedCpu();
-              if (keyMatchesFilter) {
-                depth++;
-              }
-              var result = originalFunction.apply(this, arguments);
-              if (depth > 0 || !getFilter()) {
-                var end = Game.getUsedCpu();
-                Profiler.record(key, end - start);
-              }
-              if (keyMatchesFilter) {
-                depth--;
-              }
-              return result;
-            } else {
-              return originalFunction.apply(this, arguments);
-            }
-          };
+          foundProto[prototypeFunctionName] = wrapFunction(key, foundProto[prototypeFunctionName]);
         }
       } catch (ex) { }
     });
@@ -183,6 +187,7 @@ var Profiler = {
 module.exports = {
   wrap(callback) {
     if (enabled) {
+      depth = 0; // reset depth, this needs to be done each tick.
       setupProfiler();
     }
 
@@ -211,5 +216,17 @@ module.exports = {
   enable() {
     enabled = true;
     hookUpPrototypes();
+  },
+
+  registerFN(fn, functionName) {
+    if (!functionName) {
+      functionName = fn.name;
+    }
+    if (!functionName) {
+      console.log('Couldn\'t find a function name for - ', fn);
+      console.log('Will not profile this function.');
+    } else {
+      return wrapFunction(functionName, fn);
+    }
   }
 };

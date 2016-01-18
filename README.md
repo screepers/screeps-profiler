@@ -106,6 +106,28 @@ Avg: 13.54 Total: 2707.90 Ticks: 200 Est. Bucket (20 limit): 1774
 
 **Note:** each function recorded here was part of a call stack with `Spawn.work` at the root.
 
+## Registering functions
+
+Many players in screeps do not utilitize the Global prototypes that are available.  The profiler supports arbitrary functional code as well, but takes a bit more work to setup.
+In order to do it, you'll need to import the profiler wherever you want to register a function, then call the registerFN method.  This will take two parameters, the first is the function that you want to profile, the second is the name that you'd like to call the function in the output.
+
+**Example:**
+
+```javascript
+var profiler = require('profiler');
+function getAllScouts () {
+  return Object.keys(Game.creeps).filter(function(creepName) {
+    var creep = Game.creeps[creepName];
+    return creep.memory.role === 'scout';
+  });
+}
+
+// Be sure to reassign the function, we can't alter functions that are passed.
+getAllScouts = profiler.registerFN(getAllScouts, 'mySemiOptionalName');
+```
+
+**Note:** the second param is optional if you pass a named function `function x() {}`, but required if you pass an anonymous function `var x = function(){}`.
+
 ## Potential Overhead
 
 There is some work to setting up the functions for profiling.  While this work is kept to a minimum when the profiler is not in use, it may be beneficial to comment out or remove the `profiler.enable()` call when you know you aren't going to be using it.  This will revert the monkey patched functions to their original functions.

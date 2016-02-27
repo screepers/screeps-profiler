@@ -3,22 +3,24 @@ var enabled = false;
 var depth = 0;
 
 function setupProfiler() {
+  depth = 0; // reset depth, this needs to be done each tick.
   Game.profiler = {
-    stream: function (duration, filter) {
+    stream(duration, filter) {
       setupMemory('stream', duration || 10, filter);
     },
-    email: function (duration, filter) {
+    email(duration, filter) {
       setupMemory('email', duration || 100, filter);
     },
-    profile: function (duration, filter) {
+    profile(duration, filter) {
       setupMemory('profile', duration || 100, filter);
     },
     reset: resetMemory
   };
+
+  overloadCPUCalc();
 }
 
 function setupMemory(profileType, duration, filter) {
-  overloadCPUCalc();
   resetMemory();
   if (!Memory.profiler) {
     Memory.profiler = {
@@ -39,8 +41,9 @@ function resetMemory() {
 
 function overloadCPUCalc() {
   if (Game.rooms.sim) {
+    usedOnStart = 0; // This needs to be reset, but only in the sim.
     Game.getUsedCpu = function() {
-      return Game.rooms.sim ? performance.now() - usedOnStart : Game.getUsedCpu();
+      return performance.now() - usedOnStart;
     };
   }
 }
@@ -187,7 +190,6 @@ var Profiler = {
 module.exports = {
   wrap(callback) {
     if (enabled) {
-      depth = 0; // reset depth, this needs to be done each tick.
       setupProfiler();
     }
 
@@ -208,9 +210,9 @@ module.exports = {
       // var unaccounted = end - profilerTime - callbackTime;
       //console.log('total-', end, 'profiler-', profilerTime, 'callbacktime-', callbackTime, 'start-', start, 'unaccounted', unaccounted);
       return returnVal;
-    } else {
-      return callback();
     }
+
+    return callback();
   },
 
   enable() {

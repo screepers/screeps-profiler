@@ -99,10 +99,10 @@ var Profiler = {
     Game.notify(Profiler.output());
   },
 
-  output(limit) {
+  output() {
     var elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
     var header = 'calls\t\ttime\t\tavg\t\tfunction';
-    var footer = `Avg: ${(Memory.profiler.totalTime / elapsedTicks).toFixed(2)} Total: ${Memory.profiler.totalTime.toFixed(2)} Ticks: ${elapsedTicks} Est. Bucket (20 limit): ${Memory.profiler.bucketSize.toFixed(0)}`
+    var footer = `Avg: ${(Memory.profiler.totalTime / elapsedTicks).toFixed(2)}\tTotal: ${Memory.profiler.totalTime.toFixed(2)} Ticks: ${elapsedTicks}`
     return  [].concat(header, Profiler.lines().slice(0, 20), footer).join('\n');
   },
 

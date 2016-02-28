@@ -220,6 +220,25 @@ module.exports = {
     hookUpPrototypes();
   },
 
+  registerObject(object, label) {
+
+    if(object.prototype) {
+      this.registerObject(object.prototype, label)
+    }
+
+    var functions = Object.getOwnPropertyNames(object)
+    for(var functionName of functions) {
+      var type = typeof object[functionName]
+      var extendedLabel = label + '.' + functionName
+      if(type == 'function') {
+        var originalFunction = object[functionName]
+        object[functionName] = this.registerFN(originalFunction, extendedLabel)
+      }
+    }
+
+    return object
+  },
+
   registerFN(fn, functionName) {
     if (!functionName) {
       functionName = fn.name;

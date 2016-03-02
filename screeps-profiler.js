@@ -14,7 +14,7 @@ function setupProfiler() {
     profile(duration, filter) {
       setupMemory('profile', duration || 100, filter);
     },
-    reset: resetMemory
+    reset: resetMemory,
   };
 
   overloadCPUCalc();
@@ -52,7 +52,7 @@ function getFilter() {
 }
 
 function wrapFunction(name, originalFunction) {
-  return () => {
+  return function wrappedFunction() {
     if (Profiler.isProfiling()) {
       const nameMatchesFilter = name === getFilter();
       const start = Game.getUsedCpu();
@@ -75,23 +75,22 @@ function wrapFunction(name, originalFunction) {
 }
 
 function hookUpPrototypes() {
-  Profiler.prototypes.forEach(function eachPrototype(proto) {
+  Profiler.prototypes.forEach(proto => {
     profileObjectFunctions(proto.val, proto.name);
   });
 }
 
 function profileObjectFunctions(object, label) {
   const objectToWrap = object.prototype ? object.prototype : object;
-  Object.keys(objectToWrap).forEach((functionName) => {
+
+  Object.keys(objectToWrap).forEach(functionName => {
     const extendedLabel = `${label}.${functionName}`;
     try {
       if (typeof objectToWrap[functionName] === 'function' && functionName !== 'getUsedCpu') {
         const originalFunction = objectToWrap[functionName];
         objectToWrap[functionName] = profileFunction(originalFunction, extendedLabel);
       }
-    } catch (ex) {
-      console.log('Error wrapping', extendedLabel);
-    }
+    } catch (e) { } /* eslint no-empty:0 */
   });
 
   return objectToWrap;
@@ -209,6 +208,7 @@ const Profiler = {
     return Profiler.type() === 'email' && Memory.profiler.disableTick === Game.time;
   },
 };
+
 module.exports = {
   wrap(callback) {
     if (enabled) {

@@ -77,18 +77,49 @@ function wrapFunction(name, originalFunction) {
 
 function hookUpPrototypes() {
   Profiler.prototypes.forEach(function eachPrototype(proto) {
-    var foundProto = proto.val.prototype ? proto.val.prototype : proto.val;
-    Object.keys(foundProto).forEach(function eachKeyOnPrototype(prototypeFunctionName) {
-      var key = `${proto.name}.${prototypeFunctionName}`;
-      try {
-        if (typeof foundProto[prototypeFunctionName] === 'function' && prototypeFunctionName !== 'getUsedCpu') {
-          var originalFunction = foundProto[prototypeFunctionName];
-          foundProto[prototypeFunctionName] = wrapFunction(key, foundProto[prototypeFunctionName]);
-        }
-      } catch (ex) { }
-    });
+    profileObjectFunctions(proto.val, proto.name)
   });
 }
+
+function profileObjectFunctions(object, label) {
+
+  if(object.prototype) {
+    profileObjectFunctions(object.prototype, label)
+  }
+
+  var functions = Object.keys(object)
+  for(var functionName of functions) {
+    try {
+
+      if(label == 'Game' && functionName == 'getUsedCpu') {
+        continue
+      }
+
+      var type = typeof object[functionName]
+      var extendedLabel = label + '.' + functionName
+      if(type == 'function') {
+        var originalFunction = object[functionName]
+        object[functionName] = profileFunction(originalFunction, extendedLabel)
+      }
+
+    } catch (ex) { }
+  }
+
+  return object
+}
+
+function profileFunction(fn, functionName) {
+  if (!functionName) {
+    functionName = fn.name;
+  }
+  if (!functionName) {
+    console.log('Couldn\'t find a function name for - ', fn);
+    console.log('Will not profile this function.');
+  } else {
+    return wrapFunction(functionName, fn);
+  }
+}
+
 
 var Profiler = {
   printProfile() {
@@ -220,15 +251,11 @@ module.exports = {
     hookUpPrototypes();
   },
 
+  registerObject(object, label) {
+    return profileObjectFunctions(object, label)
+  },
+
   registerFN(fn, functionName) {
-    if (!functionName) {
-      functionName = fn.name;
-    }
-    if (!functionName) {
-      console.log('Couldn\'t find a function name for - ', fn);
-      console.log('Will not profile this function.');
-    } else {
-      return wrapFunction(functionName, fn);
-    }
+    return profileFunction(fn, functionName)
   }
 };

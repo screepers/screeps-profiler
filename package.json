@@ -4,7 +4,8 @@
   "description": "A profiler designed for use in the game of Screeps.",
   "main": "screeps-profiler.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
@@ -19,5 +20,10 @@
   "bugs": {
     "url": "https://github.com/gdborton/screeps-profiler/issues"
   },
-  "homepage": "https://github.com/gdborton/screeps-profiler#readme"
+  "homepage": "https://github.com/gdborton/screeps-profiler#readme",
+  "devDependencies": {
+    "eslint": "^2.2.0",
+    "eslint-config-airbnb": "^6.0.2",
+    "eslint-plugin-react": "^4.1.0"
+  }
 }

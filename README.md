@@ -1,4 +1,4 @@
-# Screeps Profiler
+# Screeps Profiler [ ![Codeship Status for gdborton/screeps-profiler](https://codeship.com/projects/bd2a3c50-e9f2-0132-f68f-4602e60b2e9f/status?branch=master)](https://codeship.com/projects/83021)
 
 The Screeps Profiler is a library that helps to understand where your CPU is being spent in the game of [Screeps](https://screeps.com).
 

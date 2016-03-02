@@ -77,49 +77,34 @@ function wrapFunction(name, originalFunction) {
 
 function hookUpPrototypes() {
   Profiler.prototypes.forEach(function eachPrototype(proto) {
-    profileObjectFunctions(proto.val, proto.name)
+    profileObjectFunctions(proto.val, proto.name);
   });
 }
 
 function profileObjectFunctions(object, label) {
-
-  if(object.prototype) {
-    profileObjectFunctions(object.prototype, label)
-  }
-
-  var functions = Object.keys(object)
-  for(var functionName of functions) {
+  const objectToWrap = object.prototype ? object.prototype : object;
+  Object.keys(objectToWrap).forEach((functionName) => {
     try {
-
-      if(label == 'Game' && functionName == 'getUsedCpu') {
-        continue
+      if (typeof objectToWrap[functionName] === 'function' && functionName !== 'getUsedCpu') {
+        var extendedLabel = `${label}.${functionName}`;
+        var originalFunction = objectToWrap[functionName];
+        objectToWrap[functionName] = profileFunction(originalFunction, extendedLabel);
       }
-
-      var type = typeof object[functionName]
-      var extendedLabel = label + '.' + functionName
-      if(type == 'function') {
-        var originalFunction = object[functionName]
-        object[functionName] = profileFunction(originalFunction, extendedLabel)
-      }
-
     } catch (ex) { }
-  }
+  });
 
-  return object
+  return objectToWrap;
 }
 
 function profileFunction(fn, functionName) {
-  if (!functionName) {
-    functionName = fn.name;
-  }
-  if (!functionName) {
+  let fnName = functionName ? functionName : fn.name;
+  if (!fnName) {
     console.log('Couldn\'t find a function name for - ', fn);
     console.log('Will not profile this function.');
   } else {
-    return wrapFunction(functionName, fn);
+    return wrapFunction(fnName, fn);
   }
 }
-
 
 var Profiler = {
   printProfile() {
@@ -162,7 +147,8 @@ var Profiler = {
     { name: 'Structure', val: Structure },
     { name: 'Spawn', val: Spawn },
     { name: 'Creep', val: Creep },
-    { name: 'RoomPosition', val: RoomPosition }
+    { name: 'RoomPosition', val: RoomPosition },
+    { name: 'Source', val: Source }
   ],
 
   record(functionName, time) {

@@ -160,6 +160,7 @@ const Profiler = {
     { name: 'Creep', val: Creep },
     { name: 'RoomPosition', val: RoomPosition },
     { name: 'Source', val: Source },
+    { name: 'Flag', val: Flag },
   ],
 
   record(functionName, time) {

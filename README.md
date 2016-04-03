@@ -108,8 +108,9 @@ Avg: 13.54 Total: 2707.90 Ticks: 200 Est. Bucket (20 limit): 1774
 
 ## Registering functions
 
-Many players in screeps do not utilitize the Global prototypes that are available.  The profiler supports arbitrary functional code as well, but takes a bit more work to setup.
-In order to do it, you'll need to import the profiler wherever you want to register a function, then call the registerFN method.  This will take two parameters, the first is the function that you want to profile, the second is the name that you'd like to call the function in the output.
+Many players in screeps do not utilize the Global prototypes that are available.  The profiler supports arbitrary functional code as well, but takes a bit more work to setup.
+In order to do it, you'll need to import the profiler wherever you want to register a function, then call the registerFN method.  This will take two parameters, the first is the function that you want to profile, the second is the name that you'd like to call the function in the output.  The registerFN method is recursive, so it will add all of the
+functions underneath the main function you are registering.
 
 **Example:**
 

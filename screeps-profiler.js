@@ -41,7 +41,7 @@ function resetMemory() {
 function overloadCPUCalc() {
   if (Game.rooms.sim) {
     usedOnStart = 0; // This needs to be reset, but only in the sim.
-    Game.getUsedCpu = function getUsedCpu() {
+    Game.cpu.getUsed = function getUsed() {
       return performance.now() - usedOnStart;
     };
   }
@@ -55,13 +55,13 @@ function wrapFunction(name, originalFunction) {
   return function wrappedFunction() {
     if (Profiler.isProfiling()) {
       const nameMatchesFilter = name === getFilter();
-      const start = Game.getUsedCpu();
+      const start = Game.cpu.getUsed();
       if (nameMatchesFilter) {
         depth++;
       }
       const result = originalFunction.apply(this, arguments);
       if (depth > 0 || !getFilter()) {
-        const end = Game.getUsedCpu();
+        const end = Game.cpu.getUsed();
         Profiler.record(name, end - start);
       }
       if (nameMatchesFilter) {
@@ -86,7 +86,7 @@ function profileObjectFunctions(object, label) {
   Object.keys(objectToWrap).forEach(functionName => {
     const extendedLabel = `${label}.${functionName}`;
     try {
-      if (typeof objectToWrap[functionName] === 'function' && functionName !== 'getUsedCpu') {
+      if (typeof objectToWrap[functionName] === 'function' && functionName !== 'getUsed') {
         const originalFunction = objectToWrap[functionName];
         objectToWrap[functionName] = profileFunction(originalFunction, extendedLabel);
       }
@@ -176,7 +176,7 @@ const Profiler = {
 
   endTick() {
     if (Game.time >= Memory.profiler.enabledTick) {
-      const cpuUsed = Game.getUsedCpu();
+      const cpuUsed = Game.cpu.getUsed();
       Memory.profiler.totalTime += cpuUsed;
       Profiler.report();
     }
@@ -217,16 +217,16 @@ module.exports = {
     }
 
     if (Profiler.isProfiling()) {
-      usedOnStart = Game.getUsedCpu();
+      usedOnStart = Game.cpu.getUsed();
 
       // Commented lines are part of an on going experiment to keep the profiler
       // performant, and measure certain types of overhead.
 
-      // var callbackStart = Game.getUsedCpu();
+      // var callbackStart = Game.cpu.getUsed();
       const returnVal = callback();
-      // var callbackEnd = Game.getUsedCpu();
+      // var callbackEnd = Game.cpu.getUsed();
       Profiler.endTick();
-      // var end = Game.getUsedCpu();
+      // var end = Game.cpu.getUsed();
 
       // var profilerTime = (end - start) - (callbackEnd - callbackStart);
       // var callbackTime = callbackEnd - callbackStart;

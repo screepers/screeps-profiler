@@ -44,7 +44,7 @@ Game.profiler.output()
 Game.profiler.output(200)
 
 // Clear the profiling data currently saved.
-Game.profiler.output()
+Game.profiler.clear()
 
 // Reset the profiler, disabling any profiling in the process.
 Game.profiler.reset()

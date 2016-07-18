@@ -14,22 +14,20 @@ function setupProfiler() {
     profile(duration, filter) {
       setupMemory('profile', duration || 100, filter);
     },
-    background(duration, filter) {
-      setupMemory('background', duration || false, filter);
+    background(filter) {
+      setupMemory('background', false, filter);
     },
-    clear() {
-      var restart = !!Memory.profiler && Memory.profiler.type == 'background'
-      var filter = (restart && Memory.profiler.filter) ? Memory.profiler.filter : null
-      var duration = (restart && Memory.profiler.disableTick) ? Memory.profiler.disableTick - Game.time : null
-      resetMemory()
-      if(restart) {
+    restart() {
+      if(!!Memory.profiler && Memory.profiler.type == 'background') {
+        var filter = Memory.profiler.filter ? Memory.profiler.filter : null
+        var duration = Memory.profiler.disableTick ? Memory.profiler.disableTick - Game.time : null
         setupMemory('background', duration, filter);
+      } else {
+        resetMemory()
       }
     },
     reset: resetMemory,
-    output(numresults) {
-      return Profiler.output(numresults);
-    }
+    output: Profiler.output,
   };
 
   overloadCPUCalc();
@@ -268,9 +266,7 @@ module.exports = {
     hookUpPrototypes();
   },
 
-  output(numresults) {
-    return Profiler.output(numresults);
-  },
+  output: profiler.Output,
 
   registerObject(object, label) {
     return profileObjectFunctions(object, label);

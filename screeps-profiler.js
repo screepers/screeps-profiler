@@ -18,12 +18,13 @@ function setupProfiler() {
       setupMemory('background', false, filter);
     },
     restart() {
-      if(!!Memory.profiler && Memory.profiler.type == 'background') {
-        var filter = Memory.profiler.filter ? Memory.profiler.filter : null
-        var duration = Memory.profiler.disableTick ? Memory.profiler.disableTick - Game.time : null
+      if (!!Memory.profiler && Memory.profiler.type === 'background') {
+        const profmemory = Memory.profiler;
+        const filter = profmemory.filter ? profmemory.filter : null;
+        const duration = profmemory.disableTick ? profmemory.disableTick - Game.time : null;
         setupMemory('background', duration, filter);
       } else {
-        resetMemory()
+        resetMemory();
       }
     },
     reset: resetMemory,
@@ -35,13 +36,13 @@ function setupProfiler() {
 
 function setupMemory(profileType, duration, filter) {
   resetMemory();
-  var disableTick = Number.isInteger(duration) ? Game.time + duration : false
+  const disableTick = Number.isInteger(duration) ? Game.time + duration : false;
   if (!Memory.profiler) {
     Memory.profiler = {
       map: {},
       totalTime: 0,
       enabledTick: Game.time + 1,
-      disableTick: disableTick,
+      disableTick,
       type: profileType,
       filter,
     };
@@ -131,12 +132,9 @@ const Profiler = {
   },
 
   output(numresults) {
-    if(!numresults) {
-      numresults = 20
-    }
-
-    if(!Memory.profiler || !Memory.profiler.enabledTick) {
-      return 'Profiler not active.'
+    const displayresults = !!numresults ? numresults : 20;
+    if (!Memory.profiler || !Memory.profiler.enabledTick) {
+      return 'Profiler not active.';
     }
 
     const elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
@@ -146,7 +144,7 @@ const Profiler = {
       `Total: ${Memory.profiler.totalTime.toFixed(2)}`,
       `Ticks: ${elapsedTicks}`,
     ].join('\t');
-    return [].concat(header, Profiler.lines().slice(0, numresults), footer).join('\n');
+    return [].concat(header, Profiler.lines().slice(0, displayresults), footer).join('\n');
   },
 
   lines() {
@@ -213,7 +211,10 @@ const Profiler = {
   },
 
   isProfiling() {
-    return enabled && !!Memory.profiler && (!Memory.profiler.disableTick || Game.time <= Memory.profiler.disableTick);
+    if (!enabled || !Memory.profiler) {
+      return false;
+    }
+    return !Memory.profiler.disableTick || Game.time <= Memory.profiler.disableTick;
   },
 
   type() {
@@ -266,7 +267,7 @@ module.exports = {
     hookUpPrototypes();
   },
 
-  output: profiler.Output,
+  output: Profiler.output,
 
   registerObject(object, label) {
     return profileObjectFunctions(object, label);

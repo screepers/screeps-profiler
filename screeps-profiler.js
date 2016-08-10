@@ -18,13 +18,11 @@ function setupProfiler() {
       setupMemory('background', false, filter);
     },
     restart() {
-      if (!!Memory.profiler && Memory.profiler.type === 'background') {
-        const profmemory = Memory.profiler;
-        const filter = profmemory.filter ? profmemory.filter : null;
-        const duration = profmemory.disableTick ? profmemory.disableTick - Game.time : null;
-        setupMemory('background', duration, filter);
-      } else {
-        resetMemory();
+      if (Profiler.isProfiling()) {
+        const filter = Memory.profiler.filter;
+        const duration = Memory.profiler.disableTick ? Memory.profiler.disableTick - Game.time : false;
+        const type = Memory.profiler.type;
+        setupMemory(type, duration, filter);
       }
     },
     reset: resetMemory,

@@ -22,7 +22,9 @@ function setupProfiler() {
         const filter = Memory.profiler.filter;
         let duration = false;
         if (!!Memory.profiler.disableTick) {
-          duration = Memory.profiler.disableTick - Game.time;
+          // Calculate the original duration, profile is enabled on the tick after the first call,
+          // so add 1.
+          duration = Memory.profiler.disableTick - Memory.profiler.enabledTick + 1;
         }
         const type = Memory.profiler.type;
         setupMemory(type, duration, filter);

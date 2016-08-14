@@ -17,7 +17,7 @@ Your main.js will will need to be configured like so.
 ```javascript
 // Any modules that you use that modify the game's prototypes should be require'd
 // before you require the profiler.
-var profiler = require('screeps-profiler');
+const profiler = require('screeps-profiler');
 
 // This line monkey patches the global prototypes.
 profiler.enable();
@@ -126,12 +126,22 @@ Avg: 13.54 Total: 2707.90 Ticks: 200 Est. Bucket (20 limit): 1774
 ## Registering additional code
 
 The profiler automatically registers many of the built in functions in Screeps, but not every player extends the provided prototypes.  The profiler supports arbitrary registration of objects and functions as well, but takes a bit more work to setup.
-In order to do it, you'll need to import the profiler wherever you want to register a function, then call `registerObject` or `registerFN`.
+In order to do it, you'll need to import the profiler wherever you want to register a function, then call `registerClass`, `registerObject`, or `registerFN`.
 
 **Example:**
 
 ```javascript
 const profiler = require('profiler');
+
+class SuperOmegaCreep {
+  work() {
+    hiddenManagersPlaybook.delegate();
+  }
+}
+
+// Each of the functions on this class will be replaced with a profiler wrapper. The second parameter
+// is a required label.
+profiler.registerClass(SuperOmegaCreep, 'SuperOmegaCreep');
 
 const gameHandlerObject = {
   handleGame: () => {

@@ -69,6 +69,11 @@ function getFilter() {
   return Memory.profiler.filter;
 }
 
+const functionBlackList = [
+  'getUsed', // Let's avoid wrapping this... may lead to recursion issues and should be inexpensive.
+  'constructor', // es6 class constructors need to be called with `new`
+];
+
 function wrapFunction(name, originalFunction) {
   return function wrappedFunction() {
     if (Profiler.isProfiling()) {
@@ -101,10 +106,13 @@ function hookUpPrototypes() {
 function profileObjectFunctions(object, label) {
   const objectToWrap = object.prototype ? object.prototype : object;
 
-  Object.keys(objectToWrap).forEach(functionName => {
+  Object.getOwnPropertyNames(objectToWrap).forEach(functionName => {
     const extendedLabel = `${label}.${functionName}`;
     try {
-      if (typeof objectToWrap[functionName] === 'function' && functionName !== 'getUsed') {
+      const isFunction = typeof objectToWrap[functionName] === 'function';
+      const notBlackListed = functionBlackList.indexOf(functionName) === -1;
+      console.log(functionName, isFunction, notBlackListed, functionBlackList);
+      if (isFunction && notBlackListed) {
         const originalFunction = objectToWrap[functionName];
         objectToWrap[functionName] = profileFunction(originalFunction, extendedLabel);
       }
@@ -272,11 +280,7 @@ module.exports = {
 
   output: Profiler.output,
 
-  registerObject(object, label) {
-    return profileObjectFunctions(object, label);
-  },
-
-  registerFN(fn, functionName) {
-    return profileFunction(fn, functionName);
-  },
+  registerObject: profileObjectFunctions,
+  registerFN: profileFunction,
+  registerClass: profileObjectFunctions,
 };

@@ -14,7 +14,22 @@ function setupProfiler() {
     profile(duration, filter) {
       setupMemory('profile', duration || 100, filter);
     },
+    background(filter) {
+      setupMemory('background', false, filter);
+    },
+    restart() {
+      if (Profiler.isProfiling()) {
+        const filter = Memory.profiler.filter;
+        let duration = false;
+        if (!!Memory.profiler.disableTick) {
+          duration = Memory.profiler.disableTick - Game.time;
+        }
+        const type = Memory.profiler.type;
+        setupMemory(type, duration, filter);
+      }
+    },
     reset: resetMemory,
+    output: Profiler.output,
   };
 
   overloadCPUCalc();
@@ -22,12 +37,13 @@ function setupProfiler() {
 
 function setupMemory(profileType, duration, filter) {
   resetMemory();
+  const disableTick = Number.isInteger(duration) ? Game.time + duration : false;
   if (!Memory.profiler) {
     Memory.profiler = {
       map: {},
       totalTime: 0,
       enabledTick: Game.time + 1,
-      disableTick: Game.time + duration,
+      disableTick,
       type: profileType,
       filter,
     };
@@ -116,7 +132,12 @@ const Profiler = {
     Game.notify(Profiler.output());
   },
 
-  output() {
+  output(numresults) {
+    const displayresults = !!numresults ? numresults : 20;
+    if (!Memory.profiler || !Memory.profiler.enabledTick) {
+      return 'Profiler not active.';
+    }
+
     const elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
     const header = 'calls\t\ttime\t\tavg\t\tfunction';
     const footer = [
@@ -124,7 +145,7 @@ const Profiler = {
       `Total: ${Memory.profiler.totalTime.toFixed(2)}`,
       `Ticks: ${elapsedTicks}`,
     ].join('\t');
-    return [].concat(header, Profiler.lines().slice(0, 20), footer).join('\n');
+    return [].concat(header, Profiler.lines().slice(0, displayresults), footer).join('\n');
   },
 
   lines() {
@@ -191,7 +212,10 @@ const Profiler = {
   },
 
   isProfiling() {
-    return enabled && !!Memory.profiler && Game.time <= Memory.profiler.disableTick;
+    if (!enabled || !Memory.profiler) {
+      return false;
+    }
+    return !Memory.profiler.disableTick || Game.time <= Memory.profiler.disableTick;
   },
 
   type() {
@@ -243,6 +267,8 @@ module.exports = {
     enabled = true;
     hookUpPrototypes();
   },
+
+  output: Profiler.output,
 
   registerObject(object, label) {
     return profileObjectFunctions(object, label);

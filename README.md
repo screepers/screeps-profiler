@@ -36,6 +36,19 @@ You can make use of the profiler via the Screeps console.  Currently there are t
 Game.profiler.profile(ticks, [functionFilter]);
 Game.profiler.stream(ticks, [functionFilter]);
 Game.profiler.email(ticks, [functionFilter]);
+Game.profiler.background(ticks, [functionFilter]);
+
+
+// Output current profiling data, first 20 results and then 200.
+Game.profiler.output()
+Game.profiler.output(200)
+
+// Clear the profiling data currently saved.
+Game.profiler.clear()
+
+// Reset the profiler, disabling any profiling in the process.
+Game.profiler.reset()
+
 ```
 
 **Note:** It can take up to 30 ticks if you're using `module.exports.loop` for these commands to work without issue.
@@ -45,6 +58,8 @@ Game.profiler.email(ticks, [functionFilter]);
 `stream` - Will run for the given number of ticks, and will output the gathered information each tick to the console.  The can sometimes be useful for seeing spikes in performance.
 
 `email` - This will run for the given number of ticks, and will email the output to your registered Screeps email address.  Very useful for long running profiles.
+
+`background` - This will run for the given number of ticks or indefinitely, and will only output data when a console command is run.  Very useful for long running profiles with lots of function calls.
 
 In each case, `ticks` controls how long the profiler should run before stopping, and the optional `functionFilter` parameter will limit the scope of the profiler to a specific function.
 

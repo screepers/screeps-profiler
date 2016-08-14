@@ -111,7 +111,6 @@ function profileObjectFunctions(object, label) {
     try {
       const isFunction = typeof objectToWrap[functionName] === 'function';
       const notBlackListed = functionBlackList.indexOf(functionName) === -1;
-      console.log(functionName, isFunction, notBlackListed, functionBlackList);
       if (isFunction && notBlackListed) {
         const originalFunction = objectToWrap[functionName];
         objectToWrap[functionName] = profileFunction(originalFunction, extendedLabel);

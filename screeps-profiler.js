@@ -107,7 +107,6 @@ function profileObjectFunctions(object, label) {
   const objectToWrap = object.prototype ? object.prototype : object;
 
   Object.getOwnPropertyNames(objectToWrap).forEach(functionName => {
-
     const isBlackListed = functionBlackList.indexOf(functionName) !== -1;
     if (isBlackListed) {
       return;

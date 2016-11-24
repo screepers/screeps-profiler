@@ -112,7 +112,7 @@ function profileObjectFunctions(object, label) {
       return;
     }
 
-    const descriptor = Object.getOwnPropertyDescriptor(object, functionName);
+    const descriptor = Object.getOwnPropertyDescriptor(objectToWrap, functionName);
     if (!descriptor) {
       return;
     }

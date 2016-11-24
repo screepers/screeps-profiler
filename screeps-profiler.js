@@ -107,6 +107,8 @@ function profileObjectFunctions(object, label) {
   const objectToWrap = object.prototype ? object.prototype : object;
 
   Object.getOwnPropertyNames(objectToWrap).forEach(functionName => {
+    const extendedLabel = `${label}.${functionName}`;
+
     const isBlackListed = functionBlackList.indexOf(functionName) !== -1;
     if (isBlackListed) {
       return;
@@ -119,6 +121,24 @@ function profileObjectFunctions(object, label) {
 
     const hasAccessor = descriptor.get || descriptor.set;
     if (hasAccessor) {
+      const configurable = descriptor.configurable;
+      if (!configurable) {
+        return;
+      }
+
+      const profileDescriptor = {};
+
+      if (descriptor.get) {
+        const extendedLabelGet = `${extendedLabel}:get`;
+        profileDescriptor.get = profileFunction(descriptor.get, extendedLabelGet);
+      }
+
+      if (descriptor.set) {
+        const extendedLabelSet = `${extendedLabel}:set`;
+        profileDescriptor.set = profileFunction(descriptor.set, extendedLabelSet);
+      }
+
+      Object.defineProperty(objectToWrap, functionName, profileDescriptor);
       return;
     }
 
@@ -126,8 +146,6 @@ function profileObjectFunctions(object, label) {
     if (!isFunction) {
       return;
     }
-
-    const extendedLabel = `${label}.${functionName}`;
     const originalFunction = objectToWrap[functionName];
     objectToWrap[functionName] = profileFunction(originalFunction, extendedLabel);
   });

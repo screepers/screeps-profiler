@@ -159,7 +159,7 @@ const Profiler = {
     return [].concat(header, Profiler.lines().slice(0, displayresults), footer).join('\n');
   },
 
-  outputSingle(functionname ){
+  outputSingle(functionname) {
     if (!Memory.profiler || !Memory.profiler.enabledTick) {
       return 'Profiler not active.';
     }
@@ -184,6 +184,7 @@ const Profiler = {
       return 'Function does not exist.';
     }
     delete Memory.profiler.map[functionname];
+    return true;
   },
 
   lines() {

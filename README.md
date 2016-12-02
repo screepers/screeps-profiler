@@ -41,8 +41,15 @@ Game.profiler.background([functionFilter]);
 // Output current profile data.
 Game.profiler.output([lineCount]);
 
+// Output current profile data for a single function.
+Game.profiler.outputSingle([functionName]);
+
 // Reset the profiler, disabling any profiling in the process.
 Game.profiler.reset();
+
+// Reset the profiler for a single function without changing profiling configuration.
+Game.profiler.resetSingle([functionName]);
+
 
 Game.profiler.restart();
 ```
@@ -93,6 +100,14 @@ calls    time        avg       function
 4247     443.1,      0.104     Room.droppedControllerEnergy
 Avg: 15.43 Total: 15425.31 Ticks: 1000 Est. Bucket (20 limit): 5055
 ```
+
+Below is a sample output of `Game.profiler.outputSingle('Creep.move')`
+
+```
+calls    time        avg       function
+2108     511.7,      0.243     Creep.move
+```
+
 
 Seeing that `Spawn.work` is high, we might run `Game.profiler.profile(200, 'Spawn.work')` to see what about `Spawn.work` is taking so long.  From that we would get:
 

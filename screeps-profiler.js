@@ -160,12 +160,14 @@ const Profiler = {
     const elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
     const header = 'calls\t\ttime\t\tavg\t\tmax\t\tfunction';
     const stats = Profiler.stats(Memory.profiler.map);
-    const timeSum = Array.from(stats).reduce((pv, cv) => pv+cv.totalTime, 0);
+    const timeSum = Array.from(stats).reduce((pv, cv) => pv + cv.totalTime, 0);
     const footer = [
       `Avg: ${(Memory.profiler.totalTime / elapsedTicks).toFixed(2)}`,
       `Sum: ${timeSum.toFixed(2)} +${(timeSum - Memory.profiler.lastSum).toFixed(2)}`,
-      `Init: ${Memory.profiler.initTime.toFixed(2)} +${(Memory.profiler.initTime - Memory.profiler.lastInit).toFixed(2)}`,
-      `Total: ${Memory.profiler.totalTime.toFixed(2)} +${(Memory.profiler.totalTime - Memory.profiler.lastTotal).toFixed(2)}`,
+      `Init: ${Memory.profiler.initTime.toFixed(2)} +${(Memory.profiler.initTime - 
+      Memory.profiler.lastInit).toFixed(2)}`,
+      `Total: ${Memory.profiler.totalTime.toFixed(2)} +${(Memory.profiler.totalTime - 
+      Memory.profiler.lastTotal).toFixed(2)}`,
       `Ticks: ${elapsedTicks}`,
     ].join('\t');
     Memory.profiler.lastTotal = Memory.profiler.totalTime;
@@ -181,7 +183,8 @@ const Profiler = {
         name: functionName,
         calls: functionCalls.calls,
         totalTime: functionCalls.time.reduce((pv, cv) => pv + cv, 0),
-        averageTime: functionCalls.time.reduce((pv, cv) => pv + cv, 0) / functionCalls.time.length,
+        averageTime: functionCalls.time.reduce((pv, cv) => pv + cv, 0) / 
+        functionCalls.time.length,
         maxTime: functionCalls.time.reduce((pv, cv) => Math.max(pv, cv), Number.NEGATIVE_INFINITY),
         subStats: (functionCalls.parentMap===undefined || Object.keys(functionCalls.parentMap).length < 2) ? null : Profiler.stats(functionCalls.parentMap),
       };
@@ -233,15 +236,15 @@ lines(stats) {
     Memory.profiler.map[functionName].time.push(time);
     Memory.profiler.timeSpend += time;
     if (myparent!==null) {
-      myparent = '  by ' + myparent;
-      if (!Memory.profiler.map[functionName].parentMap[myparent]) {
-        Memory.profiler.map[functionName].parentMap[myparent] = {
+      const parentString = '  by ' + myparent;
+      if (!Memory.profiler.map[functionName].parentMap[parentString]) {
+        Memory.profiler.map[functionName].parentMap[parentString] = {
           time: [],
           calls: 0,
         };
       }
-      Memory.profiler.map[functionName].parentMap[myparent].calls++;
-      Memory.profiler.map[functionName].parentMap[myparent].time.push(time); 
+      Memory.profiler.map[functionName].parentMap[parentString].calls++;
+      Memory.profiler.map[functionName].parentMap[parentString].time.push(time); 
     }
   },
 

@@ -164,9 +164,9 @@ const Profiler = {
     const footer = [
       `Avg: ${(Memory.profiler.totalTime / elapsedTicks).toFixed(2)}`,
       `Sum: ${timeSum.toFixed(2)} +${(timeSum - Memory.profiler.lastSum).toFixed(2)}`,
-      `Init: ${Memory.profiler.initTime.toFixed(2)} +${(Memory.profiler.initTime - 
+      `Init: ${Memory.profiler.initTime.toFixed(2)} +${(Memory.profiler.initTime -
       Memory.profiler.lastInit).toFixed(2)}`,
-      `Total: ${Memory.profiler.totalTime.toFixed(2)} +${(Memory.profiler.totalTime - 
+      `Total: ${Memory.profiler.totalTime.toFixed(2)} +${(Memory.profiler.totalTime -
       Memory.profiler.lastTotal).toFixed(2)}`,
       `Ticks: ${elapsedTicks}`,
     ].join('\t');
@@ -183,18 +183,19 @@ const Profiler = {
         name: functionName,
         calls: functionCalls.calls,
         totalTime: functionCalls.time.reduce((pv, cv) => pv + cv, 0),
-        averageTime: functionCalls.time.reduce((pv, cv) => pv + cv, 0) / 
+        averageTime: functionCalls.time.reduce((pv, cv) => pv + cv, 0) /
         functionCalls.time.length,
         maxTime: functionCalls.time.reduce((pv, cv) => Math.max(pv, cv), Number.NEGATIVE_INFINITY),
-        subStats: (functionCalls.parentMap===undefined || Object.keys(functionCalls.parentMap).length < 2) ? null : Profiler.stats(functionCalls.parentMap),
+        subStats: (functionCalls.parentMap === undefined || Object.keys(functionCalls.parentMap).length < 2)
+        ? null : Profiler.stats(functionCalls.parentMap),
       };
     }).sort((val1, val2) => {
       return val2.totalTime - val1.totalTime;
     });
     return stats;
-},
+  },
 
-lines(stats) {
+  lines(stats) {
     const lines = stats.map(data => {
       return [
         data.calls,
@@ -202,20 +203,16 @@ lines(stats) {
         data.averageTime.toFixed(3),
         data.maxTime.toFixed(3),
         data.name,
-        data.subStats===null ? '' : '\n' + Profiler.lines(data.subStats).join('\n'),
+        data.subStats === null ? '' : '\n' + Profiler.lines(data.subStats).join('\n'),
       ].join('\t\t');
     });
-
     return lines;
   },
 
   prototypes: [
     { name: 'Game', val: Game },
     { name: 'Room', val: Room },
-    { name: 'RoomObject', val: RoomObject },
     { name: 'Structure', val: Structure },
-    { name: 'Link', val: StructureLink },
-    { name: 'Tower', val: StructureTower },
     { name: 'Spawn', val: Spawn },
     { name: 'Creep', val: Creep },
     { name: 'RoomPosition', val: RoomPosition },
@@ -235,7 +232,7 @@ lines(stats) {
     Memory.profiler.map[functionName].calls++;
     Memory.profiler.map[functionName].time.push(time);
     Memory.profiler.timeSpend += time;
-    if (myparent!==null) {
+    if (myparent !== null) {
       const parentString = '  by ' + myparent;
       if (!Memory.profiler.map[functionName].parentMap[parentString]) {
         Memory.profiler.map[functionName].parentMap[parentString] = {
@@ -244,7 +241,7 @@ lines(stats) {
         };
       }
       Memory.profiler.map[functionName].parentMap[parentString].calls++;
-      Memory.profiler.map[functionName].parentMap[parentString].time.push(time); 
+      Memory.profiler.map[functionName].parentMap[parentString].time.push(time);
     }
   },
 

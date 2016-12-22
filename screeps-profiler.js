@@ -186,7 +186,8 @@ const Profiler = {
         averageTime: functionCalls.time.reduce((pv, cv) => pv + cv, 0) /
         functionCalls.time.length,
         maxTime: functionCalls.time.reduce((pv, cv) => Math.max(pv, cv), Number.NEGATIVE_INFINITY),
-        subStats: (functionCalls.parentMap === undefined || Object.keys(functionCalls.parentMap).length < 2)
+        subStats: (functionCalls.parentMap === undefined
+        || Object.keys(functionCalls.parentMap).length < 2)
         ? null : Profiler.stats(functionCalls.parentMap),
       };
     }).sort((val1, val2) => {
@@ -203,7 +204,7 @@ const Profiler = {
         data.averageTime.toFixed(3),
         data.maxTime.toFixed(3),
         data.name,
-        data.subStats === null ? '' : '\n' + Profiler.lines(data.subStats).join('\n'),
+        data.subStats === null ? '' : '\n'.concat(Profiler.lines(data.subStats).join('\n')),
       ].join('\t\t');
     });
     return lines;
@@ -233,7 +234,7 @@ const Profiler = {
     Memory.profiler.map[functionName].time.push(time);
     Memory.profiler.timeSpend += time;
     if (myparent !== null) {
-      const parentString = '  by ' + myparent;
+      const parentString = '  by '.concat(myparent);
       if (!Memory.profiler.map[functionName].parentMap[parentString]) {
         Memory.profiler.map[functionName].parentMap[parentString] = {
           time: [],

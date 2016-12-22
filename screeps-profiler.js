@@ -53,7 +53,6 @@ function setupMemory(profileType, duration, filter) {
       filter,
       lastTotal: 0,
       lastSum: 0,
-      //lastMeasured: 0,
       lastInit: 0,
     };
   }
@@ -96,7 +95,7 @@ function wrapFunction(name, originalFunction) {
       if (depth > 0 || !getFilter()) {
         const end = Game.cpu.getUsed();
         const endSpend = Memory.profiler.timeSpend;
-        Profiler.record(myParent, name, end - start - (endSpend-initialSpend));
+        Profiler.record(myParent, name, end - start - (endSpend - initialSpend));
       }
       parent = myParent;
       if (nameMatchesFilter) {
@@ -158,25 +157,19 @@ const Profiler = {
     if (!Memory.profiler || !Memory.profiler.enabledTick) {
       return 'Profiler not active.';
     }
-
     const elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
     const header = 'calls\t\ttime\t\tavg\t\tmax\t\tfunction';
-    
     const stats = Profiler.stats(Memory.profiler.map);
     const timeSum = Array.from(stats).reduce((pv, cv) => pv+cv.totalTime, 0);
-    
     const footer = [
       `Avg: ${(Memory.profiler.totalTime / elapsedTicks).toFixed(2)}`,
-      `Sum: ${timeSum.toFixed(2)} +${(timeSum-Memory.profiler.lastSum).toFixed(2)}`,
-      //`Measured: ${(Memory.profiler.totalTime-Memory.profiler.initTime).toFixed(2)}`,
-      `Init: ${Memory.profiler.initTime.toFixed(2)} +${(Memory.profiler.initTime-Memory.profiler.lastInit).toFixed(2)}`,
-      `Total: ${Memory.profiler.totalTime.toFixed(2)} +${(Memory.profiler.totalTime-Memory.profiler.lastTotal).toFixed(2)}`,
+      `Sum: ${timeSum.toFixed(2)} +${(timeSum - Memory.profiler.lastSum).toFixed(2)}`,
+      `Init: ${Memory.profiler.initTime.toFixed(2)} +${(Memory.profiler.initTime - Memory.profiler.lastInit).toFixed(2)}`,
+      `Total: ${Memory.profiler.totalTime.toFixed(2)} +${(Memory.profiler.totalTime - Memory.profiler.lastTotal).toFixed(2)}`,
       `Ticks: ${elapsedTicks}`,
     ].join('\t');
-    
     Memory.profiler.lastTotal = Memory.profiler.totalTime;
     Memory.profiler.lastSum = timeSum;
-    //Memory.profiler.lastMeasured = (Memory.profiler.totalTime-Memory.profiler.initTime);
     Memory.profiler.lastInit = Memory.profiler.initTime;
     return [].concat(header, Profiler.lines(stats).slice(0, displayresults), footer).join('\n');
   },
@@ -187,10 +180,10 @@ const Profiler = {
       return {
         name: functionName,
         calls: functionCalls.calls,
-        totalTime: functionCalls.time.reduce((pv, cv) => pv+cv, 0),
-        averageTime: functionCalls.time.reduce((pv, cv) => pv+cv, 0)/functionCalls.time.length,
-        maxTime: functionCalls.time.reduce((pv, cv) => Math.max(pv,cv), Number.NEGATIVE_INFINITY),
-        subStats: (functionCalls.parentMap==undefined || Object.keys(functionCalls.parentMap).length<2)?null:Profiler.stats(functionCalls.parentMap),
+        totalTime: functionCalls.time.reduce((pv, cv) => pv + cv, 0),
+        averageTime: functionCalls.time.reduce((pv, cv) => pv + cv, 0) / functionCalls.time.length,
+        maxTime: functionCalls.time.reduce((pv, cv) => Math.max(pv, cv), Number.NEGATIVE_INFINITY),
+        subStats: (functionCalls.parentMap===undefined || Object.keys(functionCalls.parentMap).length < 2) ? null : Profiler.stats(functionCalls.parentMap),
       };
     }).sort((val1, val2) => {
       return val2.totalTime - val1.totalTime;
@@ -206,7 +199,7 @@ lines(stats) {
         data.averageTime.toFixed(3),
         data.maxTime.toFixed(3),
         data.name,
-        data.subStats==null?'':'\n'+Profiler.lines(data.subStats).join('\n'),
+        data.subStats===null ? '' : '\n' + Profiler.lines(data.subStats).join('\n'),
       ].join('\t\t');
     });
 
@@ -228,27 +221,27 @@ lines(stats) {
     { name: 'Market', val: Game.market },
   ],
 
-  record(parent, functionName, time) {
+  record(myparent, functionName, time) {
     if (!Memory.profiler.map[functionName]) {
       Memory.profiler.map[functionName] = {
         time: [],
         calls: 0,
-        parentMap:new Object(),
+        parentMap: {},
       };
     }
     Memory.profiler.map[functionName].calls++;
     Memory.profiler.map[functionName].time.push(time);
     Memory.profiler.timeSpend += time;
-    if(parent!=null) {
-      parent = '--'+parent;
-      if (!Memory.profiler.map[functionName].parentMap[parent]) {
-        Memory.profiler.map[functionName].parentMap[parent] = {
+    if (myparent!==null) {
+      myparent = '  by ' + myparent;
+      if (!Memory.profiler.map[functionName].parentMap[myparent]) {
+        Memory.profiler.map[functionName].parentMap[myparent] = {
           time: [],
           calls: 0,
         };
       }
-      Memory.profiler.map[functionName].parentMap[parent].calls++;
-      Memory.profiler.map[functionName].parentMap[parent].time.push(time); 
+      Memory.profiler.map[functionName].parentMap[myparent].calls++;
+      Memory.profiler.map[functionName].parentMap[myparent].time.push(time); 
     }
   },
 

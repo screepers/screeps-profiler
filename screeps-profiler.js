@@ -138,7 +138,7 @@ const Profiler = {
   },
 
   emailProfile() {
-    Game.notify(Profiler.output());
+    Profiler.output().match(/(\w|\W){1,499}/g).forEach(s => Game.notify(s));
   },
 
   output(numresults) {

@@ -131,7 +131,7 @@ In order to do it, you'll need to import the profiler wherever you want to regis
 **Example:**
 
 ```javascript
-const profiler = require('profiler');
+const profiler = require('screeps-profiler');
 
 class SuperOmegaCreep {
   work() {

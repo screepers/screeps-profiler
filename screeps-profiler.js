@@ -107,15 +107,29 @@ function profileObjectFunctions(object, label) {
   const objectToWrap = object.prototype ? object.prototype : object;
 
   Object.getOwnPropertyNames(objectToWrap).forEach(functionName => {
+    const isBlackListed = functionBlackList.indexOf(functionName) !== -1;
+    if (isBlackListed) {
+      return;
+    }
+
+    const descriptor = Object.getOwnPropertyDescriptor(objectToWrap, functionName);
+    if (!descriptor) {
+      return;
+    }
+
+    const hasAccessor = descriptor.get || descriptor.set;
+    if (hasAccessor) {
+      return;
+    }
+
+    const isFunction = typeof descriptor.value === 'function';
+    if (!isFunction) {
+      return;
+    }
+
     const extendedLabel = `${label}.${functionName}`;
-    try {
-      const isFunction = typeof objectToWrap[functionName] === 'function';
-      const notBlackListed = functionBlackList.indexOf(functionName) === -1;
-      if (isFunction && notBlackListed) {
-        const originalFunction = objectToWrap[functionName];
-        objectToWrap[functionName] = profileFunction(originalFunction, extendedLabel);
-      }
-    } catch (e) { } /* eslint no-empty:0 */
+    const originalFunction = objectToWrap[functionName];
+    objectToWrap[functionName] = profileFunction(originalFunction, extendedLabel);
   });
 
   return objectToWrap;

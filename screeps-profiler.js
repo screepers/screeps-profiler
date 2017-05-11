@@ -75,7 +75,7 @@ const functionBlackList = [
 ];
 
 function wrapFunction(name, originalFunction) {
-  return function wrappedFunction() {
+  function wrappedFunction() {
     if (Profiler.isProfiling()) {
       const nameMatchesFilter = name === getFilter();
       const start = Game.cpu.getUsed();
@@ -94,7 +94,12 @@ function wrapFunction(name, originalFunction) {
     }
 
     return originalFunction.apply(this, arguments);
-  };
+  }
+
+  wrappedFunction.toString = () =>
+    `// screeps-profiler wrapped function:\n${originalFunction.toString()}`;
+
+  return wrappedFunction;
 }
 
 function hookUpPrototypes() {

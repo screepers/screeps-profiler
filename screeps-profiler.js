@@ -108,14 +108,46 @@ function profileObjectFunctions(object, label) {
 
   Object.getOwnPropertyNames(objectToWrap).forEach(functionName => {
     const extendedLabel = `${label}.${functionName}`;
-    try {
-      const isFunction = typeof objectToWrap[functionName] === 'function';
-      const notBlackListed = functionBlackList.indexOf(functionName) === -1;
-      if (isFunction && notBlackListed) {
-        const originalFunction = objectToWrap[functionName];
-        objectToWrap[functionName] = profileFunction(originalFunction, extendedLabel);
+
+    const isBlackListed = functionBlackList.indexOf(functionName) !== -1;
+    if (isBlackListed) {
+      return;
+    }
+
+    const descriptor = Object.getOwnPropertyDescriptor(objectToWrap, functionName);
+    if (!descriptor) {
+      return;
+    }
+
+    const hasAccessor = descriptor.get || descriptor.set;
+    if (hasAccessor) {
+      const configurable = descriptor.configurable;
+      if (!configurable) {
+        return;
       }
-    } catch (e) { } /* eslint no-empty:0 */
+
+      const profileDescriptor = {};
+
+      if (descriptor.get) {
+        const extendedLabelGet = `${extendedLabel}:get`;
+        profileDescriptor.get = profileFunction(descriptor.get, extendedLabelGet);
+      }
+
+      if (descriptor.set) {
+        const extendedLabelSet = `${extendedLabel}:set`;
+        profileDescriptor.set = profileFunction(descriptor.set, extendedLabelSet);
+      }
+
+      Object.defineProperty(objectToWrap, functionName, profileDescriptor);
+      return;
+    }
+
+    const isFunction = typeof descriptor.value === 'function';
+    if (!isFunction) {
+      return;
+    }
+    const originalFunction = objectToWrap[functionName];
+    objectToWrap[functionName] = profileFunction(originalFunction, extendedLabel);
   });
 
   return objectToWrap;

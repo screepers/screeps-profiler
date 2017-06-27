@@ -3,5 +3,4 @@ node_js:
   - '4'
   - '6'
 script:
-  - 'npm run lint'
-  - 'npm test'
+  - 'npm test && cat ./coverage/lcov.info | ./node_modules/coveralls/bin/coveralls.js'

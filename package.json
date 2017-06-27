@@ -4,7 +4,7 @@
   "description": "A profiler designed for use in the game of Screeps.",
   "main": "screeps-profiler.js",
   "scripts": {
-    "test": "npm run lint",
+    "test": "npm run --silent lint && jest --coverage",
     "lint": "eslint ."
   },
   "repository": {
@@ -21,9 +21,17 @@
     "url": "https://github.com/gdborton/screeps-profiler/issues"
   },
   "homepage": "https://github.com/gdborton/screeps-profiler#readme",
+  "jest": {
+    "coverageReporters": [
+      "html",
+      "lcov"
+    ]
+  },
   "devDependencies": {
+    "coveralls": "^2.13.1",
     "eslint": "^2.2.0",
     "eslint-config-airbnb": "^6.0.2",
-    "eslint-plugin-react": "^4.1.0"
+    "eslint-plugin-react": "^4.1.0",
+    "jest": "^20.0.4"
   }
 }

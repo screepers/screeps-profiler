@@ -1,6 +1,14 @@
+'use strict';
+
 let usedOnStart = 0;
 let enabled = false;
 let depth = 0;
+
+function AlreadyWrappedError() {
+  this.name = 'AlreadyWrappedError';
+  this.message = 'Error attempted to double wrap a function.';
+  this.stack = ((new Error())).stack;
+}
 
 function setupProfiler() {
   depth = 0; // reset depth, this needs to be done each tick.
@@ -75,6 +83,7 @@ const functionBlackList = [
 ];
 
 function wrapFunction(name, originalFunction) {
+  if (originalFunction.profilerWrapped) { throw new AlreadyWrappedError(); }
   function wrappedFunction() {
     if (Profiler.isProfiling()) {
       const nameMatchesFilter = name === getFilter();
@@ -96,6 +105,7 @@ function wrapFunction(name, originalFunction) {
     return originalFunction.apply(this, arguments);
   }
 
+  wrappedFunction.profilerWrapped = true;
   wrappedFunction.toString = () =>
     `// screeps-profiler wrapped function:\n${originalFunction.toString()}`;
 
@@ -175,11 +185,11 @@ const Profiler = {
   },
 
   emailProfile() {
-    Game.notify(Profiler.output());
+    Game.notify(Profiler.output(1000));
   },
 
-  output(numresults) {
-    const displayresults = !!numresults ? numresults : 20;
+  output(passedOutputLengthLimit) {
+    const outputLengthLimit = passedOutputLengthLimit || 1000;
     if (!Memory.profiler || !Memory.profiler.enabledTick) {
       return 'Profiler not active.';
     }
@@ -193,7 +203,23 @@ const Profiler = {
       `Total: ${Memory.profiler.totalTime.toFixed(2)}`,
       `Ticks: ${elapsedTicks}`,
     ].join('\t');
-    return [].concat(header, Profiler.lines().slice(0, displayresults), footer).join('\n');
+
+    const lines = [header];
+    let currentLength = header.length + 1 + footer.length;
+    const allLines = Profiler.lines();
+    let done = false;
+    while (!done) {
+      const line = allLines.shift();
+      // each line added adds the line length plus a new line character.
+      if (currentLength + line.length + 1 < outputLengthLimit) {
+        lines.push(line);
+        currentLength += line.length + 1;
+      } else {
+        done = true;
+      }
+    }
+    lines.push(footer);
+    return lines.join('\n');
   },
 
   lines() {

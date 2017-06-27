@@ -2,6 +2,12 @@ let usedOnStart = 0;
 let enabled = false;
 let depth = 0;
 
+function AlreadyWrappedError() {
+  this.name = 'AlreadyWrappedError';
+  this.message = 'Error attempted to double wrap a function.';
+  this.stack = ((new Error())).stack;
+}
+
 function setupProfiler() {
   depth = 0; // reset depth, this needs to be done each tick.
   Game.profiler = {
@@ -75,6 +81,7 @@ const functionBlackList = [
 ];
 
 function wrapFunction(name, originalFunction) {
+  if (originalFunction.profilerWrapped) { throw new AlreadyWrappedError(); }
   function wrappedFunction() {
     if (Profiler.isProfiling()) {
       const nameMatchesFilter = name === getFilter();
@@ -96,6 +103,7 @@ function wrapFunction(name, originalFunction) {
     return originalFunction.apply(this, arguments);
   }
 
+  wrappedFunction.profilerWrapped = true;
   wrappedFunction.toString = () =>
     `// screeps-profiler wrapped function:\n${originalFunction.toString()}`;
 

@@ -185,11 +185,11 @@ const Profiler = {
   },
 
   emailProfile() {
-    Game.notify(Profiler.output());
+    Game.notify(Profiler.output(1000));
   },
 
-  output(numresults) {
-    const displayresults = !!numresults ? numresults : 20;
+  output(passedOutputLengthLimit) {
+    const outputLengthLimit = passedOutputLengthLimit || 1000;
     if (!Memory.profiler || !Memory.profiler.enabledTick) {
       return 'Profiler not active.';
     }
@@ -203,7 +203,23 @@ const Profiler = {
       `Total: ${Memory.profiler.totalTime.toFixed(2)}`,
       `Ticks: ${elapsedTicks}`,
     ].join('\t');
-    return [].concat(header, Profiler.lines().slice(0, displayresults), footer).join('\n');
+
+    const lines = [header];
+    let currentLength = header.length + 1 + footer.length;
+    const allLines = Profiler.lines();
+    let done = false;
+    while (!done) {
+      const line = allLines.shift();
+      // each line added adds the line length plus a new line character.
+      if (currentLength + line.length + 1 < outputLengthLimit) {
+        lines.push(line);
+        currentLength += line.length + 1;
+      } else {
+        done = true;
+      }
+    }
+    lines.push(footer);
+    return lines.join('\n');
   },
 
   lines() {

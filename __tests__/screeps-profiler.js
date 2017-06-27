@@ -109,6 +109,9 @@ describe('screeps-profiler', () => {
         const output = profiler.output();
         expect(output.length > 500).toBe(true);
         expect(output.length <= 1000).toBe(true);
+        const smallerOutput = profiler.output(300);
+        expect(smallerOutput.length > 100).toBe(true);
+        expect(smallerOutput.length <= 300).toBe(true);
       });
     });
   });

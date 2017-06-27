@@ -1,3 +1,5 @@
+'use strict';
+
 let start = Date.now();
 resetGlobals(); // needs to be called before requiring the profiler.
 const profiler = require('../screeps-profiler');

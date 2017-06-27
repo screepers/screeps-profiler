@@ -1,3 +1,9 @@
+## 2.0.0
+
+ - Breaking: Profiler now throws if you attempt to wrap an already wrapped function. ([#24](https://github.com/gdborton/screeps-profiler/pull/24))
+ - Breaking: Changed `profiler.output()` to take a character limit (1000 default) instead of a line limit. This should make `.email` more consistent. ([#24](https://github.com/gdborton/screeps-profiler/pull/24))
+ - Internal: Added tests. This has been missing for a while, and is needed to keep the profiler healthy. ([#24](https://github.com/gdborton/screeps-profiler/pull/24))
+
 ## 1.3.0
 
  - New: Added this change log.

@@ -1,3 +1,7 @@
+## 2.0.1
+
+ - Fix: `profiler.output()` will no longer throw when there are very few functions that have been profiled. ([#26](https://github.com/screepers/screeps-profiler/pull/26))
+
 ## 2.0.0
 
  - Breaking: Profiler now throws if you attempt to wrap an already wrapped function. ([#24](https://github.com/gdborton/screeps-profiler/pull/24))

@@ -208,7 +208,7 @@ const Profiler = {
     let currentLength = header.length + 1 + footer.length;
     const allLines = Profiler.lines();
     let done = false;
-    while (!done) {
+    while (!done && allLines.length) {
       const line = allLines.shift();
       // each line added adds the line length plus a new line character.
       if (currentLength + line.length + 1 < outputLengthLimit) {

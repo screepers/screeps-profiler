@@ -1,4 +1,4 @@
-# Screeps Profiler [![Build Status](https://travis-ci.org/gdborton/screeps-profiler.svg?branch=master)](https://travis-ci.org/gdborton/screeps-profiler) [![Coverage Status](https://coveralls.io/repos/github/gdborton/screeps-profiler/badge.svg)](https://coveralls.io/github/gdborton/screeps-profiler)
+# Screeps Profiler [![Build Status](https://travis-ci.org/screepers/screeps-profiler.svg?branch=master)](https://travis-ci.org/screepers/screeps-profiler) [![Coverage Status](https://coveralls.io/repos/github/screepers/screeps-profiler/badge.svg)](https://coveralls.io/github/screepers/screeps-profiler)
 
 The Screeps Profiler is a library that helps to understand where your CPU is being spent in the game of [Screeps](https://screeps.com).
 

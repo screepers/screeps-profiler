@@ -270,6 +270,8 @@ const Profiler = {
 
   prototypes: [
     { name: 'Game', val: global.Game },
+    { name: 'Map', val: global.Game.map },
+    { name: 'Market', val: global.Game.market },
     { name: 'PathFinder', val: global.PathFinder },
     { name: 'RawMemory', val: global.RawMemory },
     { name: 'ConstructionSite', val: global.ConstructionSite },

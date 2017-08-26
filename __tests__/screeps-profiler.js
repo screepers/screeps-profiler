@@ -159,6 +159,8 @@ function resetGlobals() {
     },
     rooms: {},
     time: 10,
+    map: {},
+    market: {},
   };
   global.Memory = {};
   global.PathFinder = {};

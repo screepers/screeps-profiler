@@ -3,6 +3,7 @@
 let usedOnStart = 0;
 let enabled = false;
 let depth = 0;
+let parentFn = '(tick)';
 
 function AlreadyWrappedError() {
   this.name = 'AlreadyWrappedError';
@@ -12,6 +13,7 @@ function AlreadyWrappedError() {
 
 function setupProfiler() {
   depth = 0; // reset depth, this needs to be done each tick.
+  parentFn = '(tick)';
   Game.profiler = {
     stream(duration, filter) {
       setupMemory('stream', duration || 10, filter);
@@ -24,6 +26,28 @@ function setupProfiler() {
     },
     background(filter) {
       setupMemory('background', false, filter);
+    },
+    callgrind() {
+      const id = `id${Math.random()}`;
+      /* eslint-disable */
+      const download = `
+<script>
+  var element = document.getElementById('${id}');
+  if (!element) {
+    element = document.createElement('a');
+    element.setAttribute('id', '${id}');
+    element.setAttribute('href', 'data:text/plain;charset=utf-8,${encodeURIComponent(Profiler.callgrind())}');
+    element.setAttribute('download', 'callgrind.out.${Game.time}');
+  
+    element.style.display = 'none';
+    document.body.appendChild(element);
+  
+    element.click();
+  }
+</script>
+      `;
+      /* eslint-enable */
+      console.log(download.split('\n').map((s) => s.trim()).join(''));
     },
     restart() {
       if (Profiler.isProfiling()) {
@@ -91,10 +115,13 @@ function wrapFunction(name, originalFunction) {
       if (nameMatchesFilter) {
         depth++;
       }
+      const curParent = parentFn;
+      parentFn = name;
       const result = originalFunction.apply(this, arguments);
+      parentFn = curParent;
       if (depth > 0 || !getFilter()) {
         const end = Game.cpu.getUsed();
-        Profiler.record(name, end - start);
+        Profiler.record(name, end - start, parentFn);
       }
       if (nameMatchesFilter) {
         depth--;
@@ -188,6 +215,32 @@ const Profiler = {
     Game.notify(Profiler.output(1000));
   },
 
+  callgrind() {
+    const elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
+    Memory.profiler.map['(tick)'].calls = elapsedTicks;
+    Memory.profiler.map['(tick)'].time = Memory.profiler.totalTime;
+    Profiler.checkMapItem('(root)');
+    Memory.profiler.map['(root)'].calls = 1;
+    Memory.profiler.map['(root)'].time = Memory.profiler.totalTime;
+    Profiler.checkMapItem('(root)', Memory.profiler.map['(root)'].subs);
+    Memory.profiler.map['(root)'].subs['(tick)'].calls = elapsedTicks;
+    Memory.profiler.map['(root)'].subs['(tick)'].time = Memory.profiler.totalTime;
+    let body = `events: ns\nsummary: ${Math.round(Memory.profiler.totalTime * 1000000)}\n`;
+    for (const fnName of Object.keys(Memory.profiler.map)) {
+      const fn = Memory.profiler.map[fnName];
+      let callsBody = '';
+      let callsTime = 0;
+      for (const callName of Object.keys(fn.subs)) {
+        const call = fn.subs[callName];
+        const ns = Math.round(call.time * 1000000);
+        callsBody += `cfn=${callName}\ncalls=${call.calls} 1\n1 ${ns}\n`;
+        callsTime += call.time;
+      }
+      body += `\nfn=${fnName}\n1 ${Math.round((fn.time - callsTime) * 1000000)}\n${callsBody}`;
+    }
+    return body;
+  },
+
   output(passedOutputLengthLimit) {
     const outputLengthLimit = passedOutputLengthLimit || 1000;
     if (!Memory.profiler || !Memory.profiler.enabledTick) {
@@ -258,15 +311,27 @@ const Profiler = {
     { name: 'Flag', val: Flag },
   ],
 
-  record(functionName, time) {
-    if (!Memory.profiler.map[functionName]) {
-      Memory.profiler.map[functionName] = {
+  checkMapItem(functionName, map = Memory.profiler.map) {
+    if (!map[functionName]) {
+      // eslint-disable-next-line no-param-reassign
+      map[functionName] = {
         time: 0,
         calls: 0,
+        subs: {},
       };
     }
+  },
+
+  record(functionName, time, parent) {
+    this.checkMapItem(functionName);
     Memory.profiler.map[functionName].calls++;
     Memory.profiler.map[functionName].time += time;
+    if (parent) {
+      this.checkMapItem(parent);
+      this.checkMapItem(functionName, Memory.profiler.map[parent].subs);
+      Memory.profiler.map[parent].subs[functionName].calls++;
+      Memory.profiler.map[parent].subs[functionName].time += time;
+    }
   },
 
   endTick() {

@@ -119,6 +119,32 @@ describe('screeps-profiler', () => {
         expect(smallerOutput.length <= 300).toBe(true);
       });
     });
+
+    describe('callCounting', () => {
+      it('correctly count function calls', () => {
+        Game.profiler.profile(10);
+        const N = 5;
+        const someFakeFunction = profiler.registerFN(() => {}, 'someFakeFunction');
+        for (let i = 0; i < N; ++i) {
+          someFakeFunction();
+        }
+        expect(Memory.profiler.map.someFakeFunction.calls).toBe(N);
+      });
+
+      it('correctly count parent function calls', () => {
+        Game.profiler.profile(10);
+        const N = 5;
+        const someFakeFunction = profiler.registerFN(() => {}, 'someFakeFunction');
+        const someFakeParent = profiler.registerFN(() => someFakeFunction(), 'someFakeParent');
+        for (let i = 0; i < N; ++i) {
+          someFakeFunction();
+          someFakeParent();
+        }
+        expect(Memory.profiler.map.someFakeParent.calls).toBe(N);
+        expect(Memory.profiler.map.someFakeParent.subs.someFakeFunction.calls).toBe(N);
+        expect(Memory.profiler.map.someFakeFunction.calls).toBe(2 * N);
+      });
+    });
   });
 });
 

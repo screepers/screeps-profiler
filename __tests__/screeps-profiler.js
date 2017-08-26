@@ -118,6 +118,21 @@ describe('screeps-profiler', () => {
         expect(smallerOutput.length > 100).toBe(true);
         expect(smallerOutput.length <= 300).toBe(true);
       });
+
+      it('callgrind format', () => {
+        Game.profiler.profile(10);
+        const N = 5;
+        const someFakeFunction = profiler.registerFN(() => {}, 'someFakeFunction');
+        const someFakeParent = profiler.registerFN(() => someFakeFunction(), 'someFakeParent');
+        for (let i = 0; i < N; ++i) {
+          someFakeFunction();
+          someFakeParent();
+        }
+        const format = profiler.callgrind();
+        expect(format).toMatch(/fn=someFakeParent/);
+        expect(format).toMatch(/cfn=someFakeFunction/);
+        expect(format).toMatch(/fn=someFakeFunction/);
+      });
     });
 
     describe('callCounting', () => {

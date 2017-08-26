@@ -222,7 +222,7 @@ const Profiler = {
     Profiler.checkMapItem('(root)');
     Memory.profiler.map['(root)'].calls = 1;
     Memory.profiler.map['(root)'].time = Memory.profiler.totalTime;
-    Profiler.checkMapItem('(root)', Memory.profiler.map['(root)'].subs);
+    Profiler.checkMapItem('(tick)', Memory.profiler.map['(root)'].subs);
     Memory.profiler.map['(root)'].subs['(tick)'].calls = elapsedTicks;
     Memory.profiler.map['(root)'].subs['(tick)'].time = Memory.profiler.totalTime;
     let body = `events: ns\nsummary: ${Math.round(Memory.profiler.totalTime * 1000000)}\n`;
@@ -408,6 +408,7 @@ module.exports = {
   },
 
   output: Profiler.output,
+  callgrind: Profiler.callgrind,
 
   registerObject: profileObjectFunctions,
   registerFN: profileFunction,

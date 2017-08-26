@@ -2,16 +2,9 @@
   "extends": "airbnb",
   "globals": {
     "Game": true,
-    "Creep": true,
-    "Room": true,
-    "RoomPosition": true,
-    "Source": true,
-    "Spawn": true,
-    "Structure": true,
-    "Flag": true,
     "Memory": true,
   },
-  rules: {
+  "rules": {
     "no-console": 0,
     "arrow-body-style": 0,
     "prefer-rest-params": 0,

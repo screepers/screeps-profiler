@@ -82,6 +82,8 @@ const functionBlackList = [
   'constructor', // es6 class constructors need to be called with `new`
 ];
 
+const commonProperties = ['length', 'name', 'arguments', 'caller', 'prototype'];
+
 function wrapFunction(name, originalFunction) {
   if (originalFunction.profilerWrapped) { throw new AlreadyWrappedError(); }
   function wrappedFunction() {
@@ -91,7 +93,13 @@ function wrapFunction(name, originalFunction) {
       if (nameMatchesFilter) {
         depth++;
       }
-      const result = originalFunction.apply(this, arguments);
+      let result;
+      if (this && this.constructor === wrappedFunction) {
+        // eslint-disable-next-line new-cap
+        result = new originalFunction(...arguments);
+      } else {
+        result = originalFunction.apply(this, arguments);
+      }
       if (depth > 0 || !getFilter()) {
         const end = Game.cpu.getUsed();
         Profiler.record(name, end - start);
@@ -102,12 +110,22 @@ function wrapFunction(name, originalFunction) {
       return result;
     }
 
+    if (this && this.constructor === wrappedFunction) {
+      // eslint-disable-next-line new-cap
+      return new originalFunction(...arguments);
+    }
     return originalFunction.apply(this, arguments);
   }
 
   wrappedFunction.profilerWrapped = true;
   wrappedFunction.toString = () =>
     `// screeps-profiler wrapped function:\n${originalFunction.toString()}`;
+
+  Object.getOwnPropertyNames(originalFunction).forEach(property => {
+    if (!commonProperties.includes(property)) {
+      wrappedFunction[property] = originalFunction[property];
+    }
+  });
 
   return wrappedFunction;
 }
@@ -119,7 +137,10 @@ function hookUpPrototypes() {
 }
 
 function profileObjectFunctions(object, label) {
-  const objectToWrap = object.prototype ? object.prototype : object;
+  if (object.prototype) {
+    profileObjectFunctions(object.prototype, label);
+  }
+  const objectToWrap = object;
 
   Object.getOwnPropertyNames(objectToWrap).forEach(functionName => {
     const extendedLabel = `${label}.${functionName}`;
@@ -158,7 +179,7 @@ function profileObjectFunctions(object, label) {
     }
 
     const isFunction = typeof descriptor.value === 'function';
-    if (!isFunction) {
+    if (!isFunction || !descriptor.writable) {
       return;
     }
     const originalFunction = objectToWrap[functionName];
@@ -248,14 +269,42 @@ const Profiler = {
   },
 
   prototypes: [
-    { name: 'Game', val: Game },
-    { name: 'Room', val: Room },
-    { name: 'Structure', val: Structure },
-    { name: 'Spawn', val: Spawn },
-    { name: 'Creep', val: Creep },
-    { name: 'RoomPosition', val: RoomPosition },
-    { name: 'Source', val: Source },
-    { name: 'Flag', val: Flag },
+    { name: 'Game', val: global.Game },
+    { name: 'PathFinder', val: global.PathFinder },
+    { name: 'RawMemory', val: global.RawMemory },
+    { name: 'ConstructionSite', val: global.ConstructionSite },
+    { name: 'Creep', val: global.Creep },
+    { name: 'Flag', val: global.Flag },
+    { name: 'Mineral', val: global.Mineral },
+    { name: 'Nuke', val: global.Nuke },
+    { name: 'OwnedStructure', val: global.OwnedStructure },
+    { name: 'CostMatrix', val: global.PathFinder.CostMatrix },
+    { name: 'Resource', val: global.Resource },
+    { name: 'Room', val: global.Room },
+    { name: 'RoomObject', val: global.RoomObject },
+    { name: 'RoomPosition', val: global.RoomPosition },
+    { name: 'RoomVisual', val: global.RoomVisual },
+    { name: 'Source', val: global.Source },
+    { name: 'Structure', val: global.Structure },
+    { name: 'StructureContainer', val: global.StructureContainer },
+    { name: 'StructureController', val: global.StructureController },
+    { name: 'StructureExtension', val: global.StructureExtension },
+    { name: 'StructureExtractor', val: global.StructureExtractor },
+    { name: 'StructureKeeperLair', val: global.StructureKeeperLair },
+    { name: 'StructureLab', val: global.StructureLab },
+    { name: 'StructureLink', val: global.StructureLink },
+    { name: 'StructureNuker', val: global.StructureNuker },
+    { name: 'StructureObserver', val: global.StructureObserver },
+    { name: 'StructurePowerBank', val: global.StructurePowerBank },
+    { name: 'StructurePowerSpawn', val: global.StructurePowerSpawn },
+    { name: 'StructurePortal', val: global.StructurePortal },
+    { name: 'StructureRampart', val: global.StructureRampart },
+    { name: 'StructureRoad', val: global.StructureRoad },
+    { name: 'StructureSpawn', val: global.StructureSpawn },
+    { name: 'StructureStorage', val: global.StructureStorage },
+    { name: 'StructureTerminal', val: global.StructureTerminal },
+    { name: 'StructureTower', val: global.StructureTower },
+    { name: 'StructureWall', val: global.StructureWall },
   ],
 
   record(functionName, time) {

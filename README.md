@@ -283,7 +283,11 @@ Plain text outputs can be analyzed directly from the in-game console or notifica
 
 The callgrind format is an alternative text-based format. While it requires the use of a third-party tool to analyze effectively, it provides far more utility than the plain text format. Going back to the example from the "Plain text format" section, if the callgrind format were used instead, it wouldn't be necessary to run the profiler a second time to isolate `Spawn.work`.
 
-The recommended way to analyze this output is with a call graph viewer such as [KCachegrind](https://kcachegrind.github.io/html/Home.html). If a pre-compiled Kcachegrind binary is not available for your platform and you do not wish to build it from source, there are [alternatives](https://valgrind.org/downloads/guis.html) that may be easier to set up.
+The recommended way to analyze callgrind files is with a call graph viewer such as [KCachegrind](https://kcachegrind.github.io/html/Home.html).
+
+If a pre-compiled Kcachegrind binary is not available for your platform and you do not wish to build it from source, there are [alternatives](https://valgrind.org/downloads/guis.html) that may be easier to set up.
+
+On Windows, you can use [QCachegrind](https://sourceforge.net/projects/qcachegrindwin) to visualise the profiling result. That requires MSVC 2010 x86 redistributable, and download links in theREADME are outdated. You can get an official compatible redistributable [here](https://www.microsoft.com/en-us/download/details.aspx?id=26999).
 
 Here is a sample callgrind output opened in [KCachegrind](https://kcachegrind.github.io/html/Home.html):
 

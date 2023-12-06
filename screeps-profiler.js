@@ -148,9 +148,13 @@ function wrapFunction(name, originalFunction) {
 }
 
 function hookUpPrototypes() {
-  Profiler.prototypes.forEach(proto => {
-    profileObjectFunctions(proto.val, proto.name);
-  });
+  for (const { name, val } of Profiler.prototypes) {
+    if (!val) {
+      console.log(`skipping prototype hook ${name}, object appears to be missing`);
+      continue;
+    }
+    profileObjectFunctions(val, name);
+  }
 }
 
 function profileObjectFunctions(object, label) {

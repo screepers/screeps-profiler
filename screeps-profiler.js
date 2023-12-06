@@ -4,6 +4,14 @@ let usedOnStart = 0;
 let enabled = false;
 let depth = 0;
 
+// Hack to ensure the InterShardMemory constant exists in sim
+try {
+  // eslint-disable-next-line no-unused-expressions
+  InterShardMemory;
+} catch (e) {
+  global.InterShardMemory = undefined;
+}
+
 function AlreadyWrappedError() {
   this.name = 'AlreadyWrappedError';
   this.message = 'Error attempted to double wrap a function.';
@@ -269,44 +277,49 @@ const Profiler = {
   },
 
   prototypes: [
-    { name: 'Game', val: global.Game },
-    { name: 'Map', val: global.Game.map },
-    { name: 'Market', val: global.Game.market },
-    { name: 'PathFinder', val: global.PathFinder },
-    { name: 'RawMemory', val: global.RawMemory },
-    { name: 'ConstructionSite', val: global.ConstructionSite },
-    { name: 'Creep', val: global.Creep },
-    { name: 'Flag', val: global.Flag },
-    { name: 'Mineral', val: global.Mineral },
-    { name: 'Nuke', val: global.Nuke },
-    { name: 'OwnedStructure', val: global.OwnedStructure },
-    { name: 'CostMatrix', val: global.PathFinder.CostMatrix },
-    { name: 'Resource', val: global.Resource },
-    { name: 'Room', val: global.Room },
-    { name: 'RoomObject', val: global.RoomObject },
-    { name: 'RoomPosition', val: global.RoomPosition },
-    { name: 'RoomVisual', val: global.RoomVisual },
-    { name: 'Source', val: global.Source },
-    { name: 'Structure', val: global.Structure },
-    { name: 'StructureContainer', val: global.StructureContainer },
-    { name: 'StructureController', val: global.StructureController },
-    { name: 'StructureExtension', val: global.StructureExtension },
-    { name: 'StructureExtractor', val: global.StructureExtractor },
-    { name: 'StructureKeeperLair', val: global.StructureKeeperLair },
-    { name: 'StructureLab', val: global.StructureLab },
-    { name: 'StructureLink', val: global.StructureLink },
-    { name: 'StructureNuker', val: global.StructureNuker },
-    { name: 'StructureObserver', val: global.StructureObserver },
-    { name: 'StructurePowerBank', val: global.StructurePowerBank },
-    { name: 'StructurePowerSpawn', val: global.StructurePowerSpawn },
-    { name: 'StructurePortal', val: global.StructurePortal },
-    { name: 'StructureRampart', val: global.StructureRampart },
-    { name: 'StructureRoad', val: global.StructureRoad },
-    { name: 'StructureSpawn', val: global.StructureSpawn },
-    { name: 'StructureStorage', val: global.StructureStorage },
-    { name: 'StructureTerminal', val: global.StructureTerminal },
-    { name: 'StructureTower', val: global.StructureTower },
-    { name: 'StructureWall', val: global.StructureWall },
+    { name: 'ConstructionSite', val: ConstructionSite },
+    { name: 'Creep', val: Creep },
+    { name: 'Deposit', val: Deposit },
+    { name: 'Flag', val: Flag },
+    { name: 'Game', val: Game },
+    { name: 'InterShardMemory', val: InterShardMemory },
+    { name: 'Mineral', val: Mineral },
+    { name: 'Nuke', val: Nuke },
+    { name: 'OwnedStructure', val: OwnedStructure },
+    { name: 'PathFinder', val: PathFinder },
+    { name: 'PowerCreep', val: PowerCreep },
+    { name: 'RawMemory', val: RawMemory },
+    { name: 'Resource', val: Resource },
+    { name: 'Room', val: Room },
+    { name: 'RoomObject', val: RoomObject },
+    { name: 'RoomPosition', val: RoomPosition },
+    { name: 'RoomVisual', val: RoomVisual },
+    { name: 'Ruin', val: Ruin },
+    { name: 'Source', val: Source },
+    { name: 'Store', val: Store },
+    { name: 'Structure', val: Structure },
+    { name: 'StructureContainer', val: StructureContainer },
+    { name: 'StructureController', val: StructureController },
+    { name: 'StructureExtension', val: StructureExtension },
+    { name: 'StructureExtractor', val: StructureExtractor },
+    { name: 'StructureFactory', val: StructureFactory },
+    { name: 'StructureInvaderCore', val: StructureInvaderCore },
+    { name: 'StructureKeeperLair', val: StructureKeeperLair },
+    { name: 'StructureLab', val: StructureLab },
+    { name: 'StructureLink', val: StructureLink },
+    { name: 'StructureNuker', val: StructureNuker },
+    { name: 'StructureObserver', val: StructureObserver },
+    { name: 'StructurePortal', val: StructurePortal },
+    { name: 'StructurePowerBank', val: StructurePowerBank },
+    { name: 'StructurePowerSpawn', val: StructurePowerSpawn },
+    { name: 'StructureRampart', val: StructureRampart },
+    { name: 'StructureRoad', val: StructureRoad },
+    { name: 'StructureSpawn', val: StructureSpawn },
+    { name: 'StructureStorage', val: StructureStorage },
+    { name: 'StructureTerminal', val: StructureTerminal },
+    { name: 'StructureTower', val: StructureTower },
+    { name: 'StructureWall', val: StructureWall },
+    { name: 'Tombstone', val: Tombstone },
   ],
 
   record(functionName, time) {

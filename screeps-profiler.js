@@ -35,27 +35,8 @@ function setupProfiler() {
     background(filter) {
       setupMemory('background', false, filter);
     },
-    callgrind() {
-      const id = `id${Math.random()}`;
-      /* eslint-disable */
-      const download = `
-<script>
-  var element = document.getElementById('${id}');
-  if (!element) {
-    element = document.createElement('a');
-    element.setAttribute('id', '${id}');
-    element.setAttribute('href', 'data:text/plain;charset=utf-8,${encodeURIComponent(Profiler.callgrind())}');
-    element.setAttribute('download', 'callgrind.out.${Game.time}');
-
-    element.style.display = 'none';
-    document.body.appendChild(element);
-
-    element.click();
-  }
-</script>
-      `;
-      /* eslint-enable */
-      console.log(download.split('\n').map((s) => s.trim()).join(''));
+    callgrind(duration, filter) {
+      setupMemory('callgrind', duration || 100, filter);
     },
     restart() {
       if (Profiler.isProfiling()) {
@@ -72,6 +53,7 @@ function setupProfiler() {
     },
     reset: resetMemory,
     output: Profiler.output,
+    downloadCallgrind: Profiler.downloadCallgrind,
   };
 
   overloadCPUCalc();
@@ -244,6 +226,34 @@ const Profiler = {
     Game.notify(Profiler.output(1000));
   },
 
+  downloadCallgrind() {
+    const id = `id${Math.random()}`;
+    /* eslint-disable */
+    const download = `
+    <script>
+    var element = document.getElementById('${id}');
+    if (!element) {
+      element = document.createElement('a');
+      element.setAttribute('id', '${id}');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,${encodeURIComponent(Profiler.callgrind())}');
+      element.setAttribute('download', 'callgrind.out.${Game.time}');
+
+      element.style.display = 'none';
+      document.body.appendChild(element);
+
+      element.click();
+    }
+    </script>
+    `;
+    /* eslint-enable */
+    console.log(
+      download
+      .split('\n')
+      .map((s) => s.trim())
+      .join('')
+    );
+  },
+
   callgrind() {
     const elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
     Memory.profiler.map['(tick)'].calls = elapsedTicks;
@@ -254,7 +264,9 @@ const Profiler = {
     Profiler.checkMapItem('(tick)', Memory.profiler.map['(root)'].subs);
     Memory.profiler.map['(root)'].subs['(tick)'].calls = elapsedTicks;
     Memory.profiler.map['(root)'].subs['(tick)'].time = Memory.profiler.totalTime;
-    let body = `events: ns\nsummary: ${Math.round(Memory.profiler.totalTime * 1000000)}\n`;
+    let body = `events: ns\nsummary: ${Math.round(
+      Memory.profiler.totalTime * 1000000
+      )}\n`;
     for (const fnName of Object.keys(Memory.profiler.map)) {
       const fn = Memory.profiler.map[fnName];
       let callsBody = '';
@@ -265,7 +277,9 @@ const Profiler = {
         callsBody += `cfn=${callName}\ncalls=${call.calls} 1\n1 ${ns}\n`;
         callsTime += call.time;
       }
-      body += `\nfn=${fnName}\n1 ${Math.round((fn.time - callsTime) * 1000000)}\n${callsBody}`;
+      body += `\nfn=${fnName}\n1 ${Math.round(
+        (fn.time - callsTime) * 1000000
+        )}\n${callsBody}`;
     }
     return body;
   },
@@ -411,6 +425,8 @@ const Profiler = {
       Profiler.printProfile();
     } else if (Profiler.shouldEmail()) {
       Profiler.emailProfile();
+    } else if (Profiler.shouldCallgrind()) {
+      Profiler.downloadCallgrind();
     }
   },
 
@@ -434,6 +450,13 @@ const Profiler = {
 
   shouldEmail() {
     return Profiler.type() === 'email' && Memory.profiler.disableTick === Game.time;
+  },
+
+  shouldCallgrind() {
+    return (
+      Profiler.type() === 'callgrind' &&
+      Memory.profiler.disableTick === Game.time
+    );
   },
 };
 

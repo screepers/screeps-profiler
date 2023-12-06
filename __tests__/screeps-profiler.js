@@ -147,8 +147,8 @@ describe('screeps-profiler', () => {
         expect(smallerOutput.length <= 300).toBe(true);
       });
 
-      it('callgrind format', () => {
-        Game.profiler.profile(10);
+      it('can be in callgrind format', () => {
+        Game.profiler.callgrind(10);
         const N = 5;
         const someFakeFunction = profiler.registerFN(() => {}, 'someFakeFunction');
         const someFakeParent = profiler.registerFN(() => someFakeFunction(), 'someFakeParent');

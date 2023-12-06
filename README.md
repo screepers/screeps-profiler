@@ -37,10 +37,11 @@ Game.profiler.profile(ticks, [functionFilter]);
 Game.profiler.stream(ticks, [functionFilter]);
 Game.profiler.email(ticks, [functionFilter]);
 Game.profiler.background([functionFilter]);
+Game.profiler.callgrind(ticks, [functionFilter]);
 
 // Output current profile data.
 Game.profiler.output([lineCount]);
-Game.profiler.callgrind();
+Game.profiler.downloadCallgrind();
 
 // Reset the profiler, disabling any profiling in the process.
 Game.profiler.reset();
@@ -58,9 +59,11 @@ Game.profiler.restart();
 
 `background` - This will run indefinitely, and will only output data when the `output` console command is run.  Very useful for long running profiles with lots of function calls.
 
+`callgrind` - Will run for the given number of ticks, and will download a file in Callgrind format which can be viewed in KCachegrind program.
+
 `output` - Print a report based on the current tick.  The profiler will continue to operate normally.
 
-`callgrind` - Download file in Callgrind format which can be viewed in KCachegrind program.  
+`downloadCallgrind` - Download the callgrind report at the current tick.  The profiler will continue to operate normally.
 
 `reset` - Stops the profiler and resets its memory.  This is currently the only way to stop a `background` profile.
 

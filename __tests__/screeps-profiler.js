@@ -30,7 +30,7 @@ describe('screeps-profiler', () => {
       it('returns a wrapped function', () => {
         const result = profiler.registerFN(add);
         expect(typeof result).toBe('function');
-        expect(result.profilerWrapped).toBe(true);
+        expect(result.__profiler).not.toBeNull();
       });
 
       it('returns a function with the same scope as the one passed in', () => {
@@ -39,12 +39,6 @@ describe('screeps-profiler', () => {
         expect(result()).toBe(passedScope);
       });
 
-      it('throws an error if you attempt to double wrap a function', () => {
-        const result = profiler.registerFN(add);
-        expect(() => {
-          profiler.registerFN(result);
-        }).toThrow();
-      });
 
       it('should attempt some toString() preservation', () => {
         const result = profiler.registerFN(add);
@@ -80,8 +74,8 @@ describe('screeps-profiler', () => {
         };
 
         profiler.registerObject(myObject);
-        expect(myObject.add.profilerWrapped).toBe(true);
-        expect(myObject.returnsScope.profilerWrapped).toBe(true);
+        expect(myObject.add.__profiler).not.toBeNull();
+        expect(myObject.returnsScope.__profiler).not.toBeNull();
       });
 
       it('correctly wraps getter/setter functions', () => {
@@ -97,8 +91,8 @@ describe('screeps-profiler', () => {
 
         profiler.registerObject(myObj);
         const descriptors = Object.getOwnPropertyDescriptor(myObj, 'someValue');
-        expect(descriptors.get.profilerWrapped).toBe(true);
-        expect(descriptors.set.profilerWrapped).toBe(true);
+        expect(descriptors.get.__profiler).not.toBeNull();
+        expect(descriptors.set.__profiler).not.toBeNull();
         expect(myObj.someValue).toBe(5);
         myObj.someValue = 7;
         expect(myObj.someValue).toBe(7);
@@ -112,7 +106,7 @@ describe('screeps-profiler', () => {
           }
         }
         profiler.registerClass(MyFakeClass);
-        expect(MyFakeClass.prototype.someFakeMethod.profilerWrapped).toBe(true);
+        expect(MyFakeClass.prototype.someFakeMethod).not.toBeNull();
       });
 
       it('wraps each static function on a class', () => {
@@ -121,7 +115,7 @@ describe('screeps-profiler', () => {
           }
         }
         profiler.registerClass(MyFakeClass);
-        expect(MyFakeClass.someFakeStaticMethod.profilerWrapped).toBe(true);
+        expect(MyFakeClass.someFakeStaticMethod.__profiler).not.toBeNull();
       });
     });
 

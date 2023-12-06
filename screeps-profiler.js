@@ -13,12 +13,6 @@ try {
   global.InterShardMemory = undefined;
 }
 
-function AlreadyWrappedError() {
-  this.name = 'AlreadyWrappedError';
-  this.message = 'Error attempted to double wrap a function.';
-  this.stack = ((new Error())).stack;
-}
-
 function setupProfiler() {
   depth = 0; // reset depth, this needs to be done each tick.
   parentFn = '(tick)';
@@ -99,9 +93,17 @@ const functionBlackList = [
 const commonProperties = ['length', 'name', 'arguments', 'caller', 'prototype'];
 
 function wrapFunction(name, originalFunction) {
-  if (originalFunction.profilerWrapped) { throw new AlreadyWrappedError(); }
+  // wrappedFunction.__profiler = Profiler;
+
+  if (originalFunction.__profiler) {
+    // eslint-disable-next-line no-param-reassign
+    originalFunction.__profiler = Profiler;
+    return originalFunction;
+  }
+
   function wrappedFunction() {
-    if (Profiler.isProfiling()) {
+    const profiler = wrappedFunction.__profiler;
+    if (profiler.isProfiling()) {
       const nameMatchesFilter = name === getFilter();
       const start = Game.cpu.getUsed();
       if (nameMatchesFilter) {
@@ -119,7 +121,7 @@ function wrapFunction(name, originalFunction) {
       parentFn = curParent;
       if (depth > 0 || !getFilter()) {
         const end = Game.cpu.getUsed();
-        Profiler.record(name, end - start, parentFn);
+        profiler.record(name, end - start, parentFn);
       }
       if (nameMatchesFilter) {
         depth--;
@@ -134,7 +136,7 @@ function wrapFunction(name, originalFunction) {
     return originalFunction.apply(this, arguments);
   }
 
-  wrappedFunction.profilerWrapped = true;
+  wrappedFunction.__profiler = Profiler;
   wrappedFunction.toString = () =>
     `// screeps-profiler wrapped function:\n${originalFunction.toString()}`;
 

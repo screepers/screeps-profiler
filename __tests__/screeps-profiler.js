@@ -106,6 +106,15 @@ describe('screeps-profiler', () => {
         myObj.someValue = 7;
         expect(myObj.someValue).toBe(7);
       });
+
+      it('throws when registering an invalid object', () => {
+        expect(() => {
+          profiler.registerObject(undefined);
+        }).toThrow(profiler.Error);
+        expect(() => {
+          profiler.registerObject('yo');
+        }).toThrow(profiler.Error);
+      });
     });
 
     describe('registerClass', () => {

@@ -5,6 +5,8 @@ let enabled = false;
 let depth = 0;
 let parentFn = '(tick)';
 
+class ProfilerError extends Error {}
+
 // Hack to ensure the InterShardMemory constant exists in sim
 try {
   // eslint-disable-next-line no-unused-expressions
@@ -160,6 +162,11 @@ function hookUpPrototypes() {
 }
 
 function profileObjectFunctions(object, label) {
+  if (!object || !(typeof object === 'object' || typeof object === 'function')) {
+    throw new ProfilerError(`Asked to profile non-object ${object} for ${label}
+     (${typeof object})`);
+  }
+
   if (object.prototype) {
     profileObjectFunctions(object.prototype, label);
   }
@@ -515,4 +522,6 @@ module.exports = {
   registerObject: profileObjectFunctions,
   registerFN: profileFunction,
   registerClass: profileObjectFunctions,
+
+  Error: ProfilerError,
 };

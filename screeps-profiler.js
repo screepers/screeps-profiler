@@ -256,6 +256,7 @@ const Profiler = {
 
   callgrind() {
     const elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
+    Profiler.checkMapItem('(tick)');
     Memory.profiler.map['(tick)'].calls = elapsedTicks;
     Memory.profiler.map['(tick)'].time = Memory.profiler.totalTime;
     Profiler.checkMapItem('(root)');

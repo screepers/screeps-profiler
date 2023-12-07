@@ -68,6 +68,7 @@ function setupMemory(profileType, duration, filter) {
       filter,
     };
   }
+  console.log(`Profiling type ${profileType} started at ${Game.time + 1} for ${duration} ticks`);
 }
 
 function resetMemory() {

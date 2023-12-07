@@ -232,6 +232,8 @@ const Profiler = {
 
   downloadCallgrind() {
     const id = `id${Math.random()}`;
+    const shardId = Game.shard.name + (Game.shard.ptr ? '-ptr' : '');
+    const filename = `callgrind.${shardId}.${Game.time}`;
     /* eslint-disable */
     const download = `
     <script>
@@ -240,7 +242,7 @@ const Profiler = {
       element = document.createElement('a');
       element.setAttribute('id', '${id}');
       element.setAttribute('href', 'data:text/plain;charset=utf-8,${encodeURIComponent(Profiler.callgrind())}');
-      element.setAttribute('download', 'callgrind.out.${Game.time}');
+      element.setAttribute('download', '${filename}');
 
       element.style.display = 'none';
       document.body.appendChild(element);

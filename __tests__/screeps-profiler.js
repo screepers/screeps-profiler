@@ -198,6 +198,7 @@ function resetGlobals() {
         return Date.now() - start;
       },
     },
+    shard: { name: 'test' },
     rooms: {},
     time: 10,
     map: {},

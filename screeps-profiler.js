@@ -4,6 +4,14 @@ let usedOnStart = 0;
 let enabled = false;
 let depth = 0;
 
+// Hack to ensure the InterShardMemory constant exists in sim
+try {
+  // eslint-disable-next-line no-unused-expressions
+  InterShardMemory;
+} catch (e) {
+  global.InterShardMemory = undefined;
+}
+
 function AlreadyWrappedError() {
   this.name = 'AlreadyWrappedError';
   this.message = 'Error attempted to double wrap a function.';
@@ -82,6 +90,8 @@ const functionBlackList = [
   'constructor', // es6 class constructors need to be called with `new`
 ];
 
+const commonProperties = ['length', 'name', 'arguments', 'caller', 'prototype'];
+
 function wrapFunction(name, originalFunction) {
   if (originalFunction.profilerWrapped) { throw new AlreadyWrappedError(); }
   function wrappedFunction() {
@@ -91,7 +101,13 @@ function wrapFunction(name, originalFunction) {
       if (nameMatchesFilter) {
         depth++;
       }
-      const result = originalFunction.apply(this, arguments);
+      let result;
+      if (this && this.constructor === wrappedFunction) {
+        // eslint-disable-next-line new-cap
+        result = new originalFunction(...arguments);
+      } else {
+        result = originalFunction.apply(this, arguments);
+      }
       if (depth > 0 || !getFilter()) {
         const end = Game.cpu.getUsed();
         Profiler.record(name, end - start);
@@ -102,12 +118,22 @@ function wrapFunction(name, originalFunction) {
       return result;
     }
 
+    if (this && this.constructor === wrappedFunction) {
+      // eslint-disable-next-line new-cap
+      return new originalFunction(...arguments);
+    }
     return originalFunction.apply(this, arguments);
   }
 
   wrappedFunction.profilerWrapped = true;
   wrappedFunction.toString = () =>
     `// screeps-profiler wrapped function:\n${originalFunction.toString()}`;
+
+  Object.getOwnPropertyNames(originalFunction).forEach(property => {
+    if (!commonProperties.includes(property)) {
+      wrappedFunction[property] = originalFunction[property];
+    }
+  });
 
   return wrappedFunction;
 }
@@ -119,7 +145,10 @@ function hookUpPrototypes() {
 }
 
 function profileObjectFunctions(object, label) {
-  const objectToWrap = object.prototype ? object.prototype : object;
+  if (object.prototype) {
+    profileObjectFunctions(object.prototype, label);
+  }
+  const objectToWrap = object;
 
   Object.getOwnPropertyNames(objectToWrap).forEach(functionName => {
     const extendedLabel = `${label}.${functionName}`;
@@ -158,7 +187,7 @@ function profileObjectFunctions(object, label) {
     }
 
     const isFunction = typeof descriptor.value === 'function';
-    if (!isFunction) {
+    if (!isFunction || !descriptor.writable) {
       return;
     }
     const originalFunction = objectToWrap[functionName];
@@ -248,14 +277,49 @@ const Profiler = {
   },
 
   prototypes: [
-    { name: 'Game', val: Game },
-    { name: 'Room', val: Room },
-    { name: 'Structure', val: Structure },
-    { name: 'Spawn', val: Spawn },
+    { name: 'ConstructionSite', val: ConstructionSite },
     { name: 'Creep', val: Creep },
-    { name: 'RoomPosition', val: RoomPosition },
-    { name: 'Source', val: Source },
+    { name: 'Deposit', val: Deposit },
     { name: 'Flag', val: Flag },
+    { name: 'Game', val: Game },
+    { name: 'InterShardMemory', val: InterShardMemory },
+    { name: 'Mineral', val: Mineral },
+    { name: 'Nuke', val: Nuke },
+    { name: 'OwnedStructure', val: OwnedStructure },
+    { name: 'PathFinder', val: PathFinder },
+    { name: 'PowerCreep', val: PowerCreep },
+    { name: 'RawMemory', val: RawMemory },
+    { name: 'Resource', val: Resource },
+    { name: 'Room', val: Room },
+    { name: 'RoomObject', val: RoomObject },
+    { name: 'RoomPosition', val: RoomPosition },
+    { name: 'RoomVisual', val: RoomVisual },
+    { name: 'Ruin', val: Ruin },
+    { name: 'Source', val: Source },
+    { name: 'Store', val: Store },
+    { name: 'Structure', val: Structure },
+    { name: 'StructureContainer', val: StructureContainer },
+    { name: 'StructureController', val: StructureController },
+    { name: 'StructureExtension', val: StructureExtension },
+    { name: 'StructureExtractor', val: StructureExtractor },
+    { name: 'StructureFactory', val: StructureFactory },
+    { name: 'StructureInvaderCore', val: StructureInvaderCore },
+    { name: 'StructureKeeperLair', val: StructureKeeperLair },
+    { name: 'StructureLab', val: StructureLab },
+    { name: 'StructureLink', val: StructureLink },
+    { name: 'StructureNuker', val: StructureNuker },
+    { name: 'StructureObserver', val: StructureObserver },
+    { name: 'StructurePortal', val: StructurePortal },
+    { name: 'StructurePowerBank', val: StructurePowerBank },
+    { name: 'StructurePowerSpawn', val: StructurePowerSpawn },
+    { name: 'StructureRampart', val: StructureRampart },
+    { name: 'StructureRoad', val: StructureRoad },
+    { name: 'StructureSpawn', val: StructureSpawn },
+    { name: 'StructureStorage', val: StructureStorage },
+    { name: 'StructureTerminal', val: StructureTerminal },
+    { name: 'StructureTower', val: StructureTower },
+    { name: 'StructureWall', val: StructureWall },
+    { name: 'Tombstone', val: Tombstone },
   ],
 
   record(functionName, time) {

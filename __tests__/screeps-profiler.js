@@ -50,6 +50,24 @@ describe('screeps-profiler', () => {
         const result = profiler.registerFN(add);
         expect(result.toString().includes(add.toString())).toBe(true);
       });
+
+      it('should preserve properties', () => {
+        const func1 = function func1() {};
+        func1.prop1 = 1;
+        const result1 = profiler.registerFN(func1);
+        expect(result1.prop1).toBe(func1.prop1);
+
+        const func2 = () => {};
+        func2.prop2 = 2;
+        const result2 = profiler.registerFN(func2);
+        expect(result2.prop2).toBe(func2.prop2);
+      });
+
+      it('should preserve constructor behavior', () => {
+        class SomeClass {}
+        const ResultClass = profiler.registerFN(SomeClass);
+        expect(new ResultClass() instanceof SomeClass).toBe(true);
+      });
     });
 
     describe('registerObject', () => {
@@ -88,13 +106,23 @@ describe('screeps-profiler', () => {
     });
 
     describe('registerClass', () => {
-      class MyFakeClass {
-        someFakeMethod() {
-
+      it('wraps each prototype function on a class', () => {
+        class MyFakeClass {
+          someFakeMethod() {
+          }
         }
-      }
-      profiler.registerClass(MyFakeClass);
-      expect(MyFakeClass.prototype.someFakeMethod.profilerWrapped).toBe(true);
+        profiler.registerClass(MyFakeClass);
+        expect(MyFakeClass.prototype.someFakeMethod.profilerWrapped).toBe(true);
+      });
+
+      it('wraps each static function on a class', () => {
+        class MyFakeClass {
+          static someFakeStaticMethod() {
+          }
+        }
+        profiler.registerClass(MyFakeClass);
+        expect(MyFakeClass.someFakeStaticMethod.profilerWrapped).toBe(true);
+      });
     });
 
     describe('output', () => {
@@ -131,13 +159,51 @@ function resetGlobals() {
     },
     rooms: {},
     time: 10,
+    map: {},
+    market: {},
   };
   global.Memory = {};
-  global.Room = {};
-  global.Structure = {};
-  global.Spawn = {};
-  global.Creep = {};
-  global.RoomPosition = {};
-  global.Source = {};
-  global.Flag = {};
+
+  global.ConstructionSite = class {};
+  global.Creep = class {};
+  global.Deposit = class {};
+  global.Flag = class {};
+  global.InterShardMemory = class {};
+  global.Mineral = class {};
+  global.Nuke = class {};
+  global.OwnedStructure = class {};
+  global.PathFinder = class {};
+  global.PowerCreep = class {};
+  global.RawMemory = class {};
+  global.Resource = class {};
+  global.Room = class {};
+  global.RoomObject = class {};
+  global.RoomPosition = class {};
+  global.RoomVisual = class {};
+  global.Ruin = class {};
+  global.Source = class {};
+  global.Store = class {};
+  global.Structure = class {};
+  global.StructureContainer = class {};
+  global.StructureController = class {};
+  global.StructureExtension = class {};
+  global.StructureExtractor = class {};
+  global.StructureFactory = class {};
+  global.StructureInvaderCore = class {};
+  global.StructureKeeperLair = class {};
+  global.StructureLab = class {};
+  global.StructureLink = class {};
+  global.StructureNuker = class {};
+  global.StructureObserver = class {};
+  global.StructurePortal = class {};
+  global.StructurePowerBank = class {};
+  global.StructurePowerSpawn = class {};
+  global.StructureRampart = class {};
+  global.StructureRoad = class {};
+  global.StructureSpawn = class {};
+  global.StructureStorage = class {};
+  global.StructureTerminal = class {};
+  global.StructureTower = class {};
+  global.StructureWall = class {};
+  global.Tombstone = class {};
 }

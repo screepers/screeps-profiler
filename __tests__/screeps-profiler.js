@@ -143,6 +143,11 @@ describe('screeps-profiler', () => {
         expect(profiler.output).not.toThrow();
       });
 
+      it('does not explode if there are no duration set', () => {
+        Game.profiler.profile();
+        expect(profiler.output).not.toThrow();
+      });
+
       it('correctly limits the length of the output', () => {
         Game.profiler.profile(10);
         let functionsWrappedAndRan = 0;

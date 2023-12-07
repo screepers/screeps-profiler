@@ -17,13 +17,22 @@ function returnsScope() {
   return this;
 }
 
+function tick(times = 1) {
+  let _times = times;
+  while (_times > 0) {
+    profiler.wrap(() => {});
+    Game.time++;
+    _times--;
+  }
+}
+
 describe('screeps-profiler', () => {
   describe('profiling', () => {
     beforeEach(() => {
       // setup the profiler.
       if (Game.profiler) Game.profiler.reset();
       profiler.enable();
-      profiler.wrap(() => {});
+      tick();
     });
 
     describe('registerFN', () => {
@@ -182,6 +191,45 @@ describe('screeps-profiler', () => {
         expect(Memory.profiler.map.someFakeFunction.calls).toBe(2 * N);
       });
     });
+
+    describe('starting', () => {
+      it('can start in streaming mode', () => {
+        Game.profiler.stream(1);
+        tick(2);
+      });
+
+      it('can start in email mode', () => {
+        Game.profiler.email(1);
+        tick(2);
+      });
+
+      it('can start in profile mode', () => {
+        Game.profiler.profile(1);
+        tick(2);
+      });
+
+      it('can start in background mode', () => {
+        Game.profiler.background(1);
+        tick(2);
+      });
+
+      it('can start in callgrind mode', () => {
+        Game.profiler.callgrind(1);
+        tick(2);
+      });
+    });
+
+    describe('callgrind output', () => {
+      it('logs an error if not profiling', () => {
+        Game.profiler.downloadCallgrind();
+      });
+
+      it('can be downloaded', () => {
+        Game.profiler.profile(1);
+        tick(2);
+        Game.profiler.downloadCallgrind();
+      });
+    });
   });
 });
 
@@ -191,6 +239,9 @@ function resetGlobals() {
       getUsed() {
         return Date.now() - start;
       },
+    },
+    notify(msg) {
+      return msg;
     },
     shard: { name: 'test' },
     rooms: {},

@@ -37,9 +37,11 @@ Game.profiler.profile(ticks, [functionFilter]);
 Game.profiler.stream(ticks, [functionFilter]);
 Game.profiler.email(ticks, [functionFilter]);
 Game.profiler.background([functionFilter]);
+Game.profiler.callgrind(ticks, [functionFilter]);
 
 // Output current profile data.
 Game.profiler.output([lineCount]);
+Game.profiler.downloadCallgrind();
 
 // Reset the profiler, disabling any profiling in the process.
 Game.profiler.reset();
@@ -57,7 +59,11 @@ Game.profiler.restart();
 
 `background` - This will run indefinitely, and will only output data when the `output` console command is run.  Very useful for long running profiles with lots of function calls.
 
-`output` - Print a report based on the current tick.  The profiler will continue to operate normally. This is currently the only way to get data from the `background` profile.
+`callgrind` - Will run for the given number of ticks, and will download a file in Callgrind format which can be viewed in KCachegrind program.
+
+`output` - Print a report based on the current tick.  The profiler will continue to operate normally.
+
+`downloadCallgrind` - Download the callgrind report at the current tick.  The profiler will continue to operate normally.
 
 `reset` - Stops the profiler and resets its memory.  This is currently the only way to stop a `background` profile.
 
@@ -122,6 +128,12 @@ Avg: 13.54 Total: 2707.90 Ticks: 200 Est. Bucket (20 limit): 1774
 ```
 
 **Note:** Each function recorded here was part of a call stack with `Spawn.work` at the root.
+
+## Example callgrind visualisation
+
+![KCachegrind screenshot](callgrind.jpg)
+
+**Note:** In callgrind format time will be saved in nanoseconds. `1 Screeps CPU unit = 1 ms = 1'000'000 ns`.
 
 ## Registering additional code
 

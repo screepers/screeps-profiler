@@ -236,6 +236,11 @@ const Profiler = {
     const id = `id${Math.random()}`;
     const shardId = Game.shard.name + (Game.shard.ptr ? '-ptr' : '');
     const filename = `callgrind.${shardId}.${Game.time}`;
+    const data = Profiler.callgrind();
+    if (!data) {
+      console.log('No profile data to download');
+      return;
+    }
     /* eslint-disable */
     const download = `
     <script>
@@ -243,7 +248,7 @@ const Profiler = {
     if (!element) {
       element = document.createElement('a');
       element.setAttribute('id', '${id}');
-      element.setAttribute('href', 'data:text/plain;charset=utf-8,${encodeURIComponent(Profiler.callgrind())}');
+      element.setAttribute('href', 'data:text/plain;charset=utf-8,${encodeURIComponent(data)}');
       element.setAttribute('download', '${filename}');
 
       element.style.display = 'none';
@@ -263,6 +268,7 @@ const Profiler = {
   },
 
   callgrind() {
+    if (!Memory.profiler || !Memory.profiler.enabledTick) return null;
     const elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
     Profiler.checkMapItem('(tick)');
     Memory.profiler.map['(tick)'].calls = elapsedTicks;

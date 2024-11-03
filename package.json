@@ -1,6 +1,6 @@
 {
   "name": "screeps-profiler",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "description": "A profiler designed for use in the game of Screeps.",
   "main": "screeps-profiler.js",
   "scripts": {

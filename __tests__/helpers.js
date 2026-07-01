@@ -16,6 +16,10 @@ function resetGlobals(options = {}) {
   };
   global.Memory = {};
 
+  console.logUnsafe = jest.fn((...args) => {
+    console.log(...args);
+  });
+
   global.ConstructionSite = class {};
   global.Creep = class {};
   global.Deposit = class {};

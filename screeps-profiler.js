@@ -262,7 +262,7 @@ const Profiler = {
     }
     </script>
     `;
-    console.log(
+    console.logUnsafe(
       download
       .split('\n')
       .map((s) => s.trim())

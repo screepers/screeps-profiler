@@ -451,7 +451,7 @@ const Profiler = {
     if (!enabled || !Memory.profiler) {
       return false;
     }
-    return !Memory.profiler.disableTick || Game.time <= Memory.profiler.disableTick;
+    return Memory.profiler.type && (!Memory.profiler.disableTick || Game.time <= Memory.profiler.disableTick);
   },
 
   type() {

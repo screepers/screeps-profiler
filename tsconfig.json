@@ -4,9 +4,13 @@
     "module": "node16",
     "moduleResolution": "node16",
     "strict": true,
+    "experimentalDecorators": true,
     "skipLibCheck": true,
     "noEmit": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["screeps-profiler.d.ts"]
+  "include": [
+    "screeps-profiler.d.ts",
+    "decorator.d.ts"
+  ]
 }

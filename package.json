@@ -4,10 +4,20 @@
   "description": "A profiler designed for use in the game of Screeps.",
   "main": "screeps-profiler.js",
   "types": "screeps-profiler.d.ts",
+  "exports": {
+    ".": {
+      "types": "./screeps-profiler.d.ts",
+      "default": "./screeps-profiler.js"
+    },
+    "./decorator": {
+      "types": "./decorator.d.ts",
+      "default": "./decorator.js"
+    }
+  },
   "scripts": {
     "test": "npm run lint && npm run typecheck && jest --coverage",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --project __tests__/tsconfig.json"
   },
   "repository": {
     "type": "git",

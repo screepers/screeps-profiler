@@ -511,6 +511,10 @@ module.exports = {
     hookUpPrototypes();
   },
 
+  isProfiling() {
+    return Profiler.isProfiling();
+  },
+
   output: Profiler.output,
   callgrind: Profiler.callgrind,
 

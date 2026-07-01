@@ -82,6 +82,11 @@ export interface ScreepsProfilerStatic {
   enable(): void;
 
   /**
+   * Whether the profiler is currently running a profile.
+   */
+  isProfiling(): boolean;
+
+  /**
    * Wrap your main loop with this function.
    *
    * @param callback - your main loop function

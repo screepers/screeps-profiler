@@ -227,6 +227,7 @@ function profileFunction(fn, functionName) {
   return wrapFunction(fnName, fn);
 }
 
+/** @type {import("./screeps-profiler").ScreepsProfilerStatic} */
 const Profiler = {
   printProfile() {
     console.log(Profiler.output());

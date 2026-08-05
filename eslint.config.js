@@ -58,7 +58,7 @@ const sharedRules = {
 
 module.exports = [
   {
-    ignores: ['coverage/**'],
+    ignores: ['coverage/**', '**/*.d.ts', 'tsconfig.json'],
   },
   js.configs.recommended,
   {

@@ -1,12 +1,14 @@
 'use strict';
 
+const { resetGlobals } = require('./helpers');
+
 let start = Date.now();
-resetGlobals(); // needs to be called before requiring the profiler.
+resetGlobals({ getUsed: () => Date.now() - start }); // needs to be called before requiring the profiler.
 const profiler = require('../screeps-profiler');
 
 beforeEach(() => {
-  resetGlobals();
   start = Date.now();
+  resetGlobals({ getUsed: () => Date.now() - start });
 });
 
 function add(a, b) {
@@ -247,64 +249,3 @@ describe('screeps-profiler', () => {
   });
 });
 
-function resetGlobals() {
-  global.Game = {
-    cpu: {
-      getUsed() {
-        return Date.now() - start;
-      },
-    },
-    notify(msg) {
-      return msg;
-    },
-    shard: { name: 'test' },
-    rooms: {},
-    time: 10,
-    map: {},
-    market: {},
-  };
-  global.Memory = {};
-
-  global.ConstructionSite = class {};
-  global.Creep = class {};
-  global.Deposit = class {};
-  global.Flag = class {};
-  global.InterShardMemory = class {};
-  global.Mineral = class {};
-  global.Nuke = class {};
-  global.OwnedStructure = class {};
-  global.PathFinder = class {};
-  global.PowerCreep = class {};
-  global.RawMemory = class {};
-  global.Resource = class {};
-  global.Room = class {};
-  global.RoomObject = class {};
-  global.RoomPosition = class {};
-  global.RoomVisual = class {};
-  global.Ruin = class {};
-  global.Source = class {};
-  global.Store = class {};
-  global.Structure = class {};
-  global.StructureContainer = class {};
-  global.StructureController = class {};
-  global.StructureExtension = class {};
-  global.StructureExtractor = class {};
-  global.StructureFactory = class {};
-  global.StructureInvaderCore = class {};
-  global.StructureKeeperLair = class {};
-  global.StructureLab = class {};
-  global.StructureLink = class {};
-  global.StructureNuker = class {};
-  global.StructureObserver = class {};
-  global.StructurePortal = class {};
-  global.StructurePowerBank = class {};
-  global.StructurePowerSpawn = class {};
-  global.StructureRampart = class {};
-  global.StructureRoad = class {};
-  global.StructureSpawn = class {};
-  global.StructureStorage = class {};
-  global.StructureTerminal = class {};
-  global.StructureTower = class {};
-  global.StructureWall = class {};
-  global.Tombstone = class {};
-}

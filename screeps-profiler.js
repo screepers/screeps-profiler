@@ -240,7 +240,7 @@ const Profiler = {
   downloadCallgrind() {
     const id = `id${Math.random()}`;
     const shardId = Game.shard.name + (Game.shard.ptr ? '-ptr' : '');
-    const filename = `callgrind.${shardId}.${Game.time}`;
+    const filename = `callgrind.out.${shardId}.${Game.time}`;
     const data = Profiler.callgrind();
     if (!data) {
       console.log('No profile data to download');

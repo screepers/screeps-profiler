@@ -9,9 +9,8 @@ class ProfilerError extends Error {}
 
 // Hack to ensure the InterShardMemory constant exists in sim
 try {
-  // eslint-disable-next-line no-unused-expressions
   InterShardMemory;
-} catch (e) {
+} catch {
   global.InterShardMemory = undefined;
 }
 
@@ -38,7 +37,7 @@ function setupProfiler() {
       if (Profiler.isProfiling()) {
         const filter = Memory.profiler.filter;
         let duration = false;
-        if (!!Memory.profiler.disableTick) {
+        if (Memory.profiler.disableTick) {
           // Calculate the original duration, profile is enabled on the tick after the first call,
           // so add 1.
           duration = Memory.profiler.disableTick - Memory.profiler.enabledTick + 1;
@@ -99,7 +98,6 @@ function wrapFunction(name, originalFunction) {
   // wrappedFunction.__profiler = Profiler;
 
   if (originalFunction.__profiler) {
-    // eslint-disable-next-line no-param-reassign
     originalFunction.__profiler = Profiler;
     return originalFunction;
   }
@@ -116,7 +114,6 @@ function wrapFunction(name, originalFunction) {
       parentFn = name;
       let result;
       if (this && this.constructor === wrappedFunction) {
-        // eslint-disable-next-line new-cap
         result = new originalFunction(...arguments);
       } else {
         result = originalFunction.apply(this, arguments);
@@ -133,7 +130,6 @@ function wrapFunction(name, originalFunction) {
     }
 
     if (this && this.constructor === wrappedFunction) {
-      // eslint-disable-next-line new-cap
       return new originalFunction(...arguments);
     }
     return originalFunction.apply(this, arguments);
@@ -231,6 +227,7 @@ function profileFunction(fn, functionName) {
   return wrapFunction(fnName, fn);
 }
 
+/** @type {import("./screeps-profiler").ScreepsProfilerStatic} */
 const Profiler = {
   printProfile() {
     console.log(Profiler.output());
@@ -249,7 +246,6 @@ const Profiler = {
       console.log('No profile data to download');
       return;
     }
-    /* eslint-disable */
     const download = `
     <script>
     var element = document.getElementById('${id}');
@@ -266,8 +262,7 @@ const Profiler = {
     }
     </script>
     `;
-    /* eslint-enable */
-    console.log(
+    console.logUnsafe(
       download
       .split('\n')
       .map((s) => s.trim())
@@ -414,7 +409,6 @@ const Profiler = {
 
   checkMapItem(functionName, map = Memory.profiler.map) {
     if (!map[functionName]) {
-      // eslint-disable-next-line no-param-reassign
       map[functionName] = {
         time: 0,
         calls: 0,
@@ -457,7 +451,7 @@ const Profiler = {
     if (!enabled || !Memory.profiler) {
       return false;
     }
-    return !Memory.profiler.disableTick || Game.time <= Memory.profiler.disableTick;
+    return Memory.profiler.type && (!Memory.profiler.disableTick || Game.time <= Memory.profiler.disableTick);
   },
 
   type() {
@@ -515,6 +509,10 @@ module.exports = {
   enable() {
     enabled = true;
     hookUpPrototypes();
+  },
+
+  isProfiling() {
+    return Profiler.isProfiling();
   },
 
   output: Profiler.output,

@@ -135,10 +135,84 @@ Avg: 13.54 Total: 2707.90 Ticks: 200 Est. Bucket (20 limit): 1774
 
 **Note:** In callgrind format time will be saved in nanoseconds. `1 Screeps CPU unit = 1 ms = 1'000'000 ns`.
 
+## Using the `@profile` decorator
+
+If you use TypeScript (or JavaScript with decorator support), you can register classes and individual methods with the `@profile` decorator from `screeps-profiler/decorator`. This is equivalent to calling `registerClass` or `registerFN`, but keeps registration next to the code being profiled.
+
+Load any module that uses `@profile` before calling `profiler.enable()`, the same as with manual registration.
+
+TypeScript supports `@profile` in two modes:
+
+- **Legacy decorators** — set `"experimentalDecorators": true` in your `tsconfig.json`
+- **Standard decorators (TypeScript 5+)** — leave `experimentalDecorators` off (the default in newer TypeScript). Standalone functions can be registered with the same `profile` helper programmatically (see below).
+
+### Class decorator
+
+Every method on the class is registered under the class name (for example, `SuperOmegaCreep.work`).
+
+```typescript
+import { profile } from 'screeps-profiler/decorator';
+
+@profile
+class SuperOmegaCreep {
+  work() {
+    hiddenManagersPlaybook.delegate();
+  }
+}
+```
+
+### Method decorator
+
+Only the decorated method is registered, using the method name as the label.
+
+```typescript
+import { profile } from 'screeps-profiler/decorator';
+
+class GameHandler {
+  @profile
+  handleGame() {
+    // do some work
+  }
+}
+```
+
+### Standalone functions
+
+TypeScript does not allow `@` decorators on function declarations. Use the same `profile` helper programmatically instead:
+
+```typescript
+import { profile } from 'screeps-profiler/decorator';
+
+export const getAllScouts = profile(
+  function getAllScouts() {
+    return Object.keys(Game.creeps).filter((creepName) => {
+      return Game.creeps[creepName].memory.role === 'scout';
+    });
+  },
+  { kind: 'function', name: 'getAllScouts' },
+);
+```
+
+With legacy decorators (`experimentalDecorators: true`), use `profiler.registerFN()` instead.
+
+### Disabling decorator registration
+
+Call `configureProfileDecorator` before your decorated classes are defined to skip wrapping at decoration time. This is useful when you want decorators in source code but no registration overhead in production builds.
+
+```typescript
+import { configureProfileDecorator } from 'screeps-profiler/decorator';
+
+configureProfileDecorator({ enabled: false });
+
+// Or use a callback for dynamic control:
+configureProfileDecorator({ enabled: () => Memory.profiling === true });
+```
+
+**Note:** `configureProfileDecorator` only controls whether `@profile` registers functions when a class is defined. You still call `profiler.enable()` in `main.js` for the profiler to instrument whatever was registered.
+
 ## Registering additional code
 
-The profiler automatically registers many of the built in functions in Screeps, but not every player extends the provided prototypes.  The profiler supports arbitrary registration of objects and functions as well, but takes a bit more work to setup.
-In order to do it, you'll need to import the profiler wherever you want to register a function, then call `registerClass`, `registerObject`, or `registerFN`.
+The profiler automatically registers many of the built in functions in Screeps, but not every player extends the provided prototypes.  The profiler supports arbitrary registration of objects and functions as well. If you are not using the `@profile` decorator, you can register code manually by importing the profiler and calling `registerClass`, `registerObject`, or `registerFN`.
 
 **Example:**
 

@@ -41,9 +41,15 @@
     "testMatch": [
       "**/__tests__/**/*.test.js"
     ],
+    "collectCoverageFrom": [
+      "screeps-profiler.js",
+      "decorator.js"
+    ],
     "coverageReporters": [
+      "text",
+      "text-summary",
       "html",
-      "lcov"
+      "lcovonly"
     ]
   },
   "devDependencies": {

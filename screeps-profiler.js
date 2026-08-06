@@ -57,16 +57,14 @@ function setupProfiler() {
 function setupMemory(profileType, duration, filter) {
   resetMemory();
   const disableTick = Number.isInteger(duration) ? Game.time + duration : false;
-  if (!Memory.profiler) {
-    Memory.profiler = {
-      map: {},
-      totalTime: 0,
-      enabledTick: Game.time + 1,
-      disableTick,
-      type: profileType,
-      filter,
-    };
-  }
+  Memory.profiler = {
+    map: {},
+    totalTime: 0,
+    enabledTick: Game.time + 1,
+    disableTick,
+    type: profileType,
+    filter,
+  };
   console.log(`Profiling type ${profileType} started at ${Game.time + 1} for ${duration} ticks`);
 }
 
@@ -178,10 +176,7 @@ function profileObjectFunctions(object, label) {
     }
 
     const descriptor = Object.getOwnPropertyDescriptor(objectToWrap, functionName);
-    if (!descriptor) {
-      return;
-    }
-
+    // descriptor must always exist since we got the name from getOwnPropertyNames above
     const hasAccessor = descriptor.get || descriptor.set;
     if (hasAccessor) {
       const configurable = descriptor.configurable;

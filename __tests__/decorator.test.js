@@ -14,6 +14,23 @@ beforeEach(() => {
 });
 
 describe('decorator', () => {
+  describe('configureProfileDecorator', () => {
+    it('ignores calls without an enabled option', () => {
+      configureProfileDecorator({ enabled: false });
+      configureProfileDecorator();
+      configureProfileDecorator({});
+
+      class Example {
+        run() {
+          return 1;
+        }
+      }
+
+      profile(Example);
+      expect(Example.prototype.run.__profiler).toBeUndefined();
+    });
+  });
+
   describe('profile class decorator', () => {
     it('registers class methods with the profiler', () => {
       class Example {
@@ -58,6 +75,11 @@ describe('decorator', () => {
       profile(Example);
       expect(Example.prototype.run.__profiler).toBeDefined();
     });
+
+    it('ignores non-constructible targets', () => {
+      expect(() => profile(() => {})).not.toThrow();
+      expect(() => profile(null)).not.toThrow();
+    });
   });
 
   describe('profile method decorator', () => {
@@ -74,6 +96,26 @@ describe('decorator', () => {
 
       expect(Example.prototype.run.__profiler).toBeDefined();
     });
+
+    it('skips non-function descriptors', () => {
+      const obj = {
+        get value() {
+          return 1;
+        },
+      };
+      const descriptor = Object.getOwnPropertyDescriptor(obj, 'value');
+      const originalGet = descriptor.get;
+
+      profile(obj, 'value', descriptor);
+      expect(descriptor.get).toBe(originalGet);
+      expect(descriptor.value).toBeUndefined();
+    });
+
+    it('skips missing descriptors', () => {
+      const obj = { run() { return 1; } };
+      profile(obj, 'run');
+      expect(obj.run.__profiler).toBeUndefined();
+    });
   });
 
   describe('stage 3 decorators', () => {
@@ -87,6 +129,13 @@ describe('decorator', () => {
       profile(Example, { kind: 'class', name: 'Example' });
 
       expect(Example.prototype.run.__profiler).toBeDefined();
+    });
+
+    it('ignores class decoration when the target is not a function', () => {
+      const target = { run() { return 1; } };
+      const result = profile(target, { kind: 'class', name: 'Example' });
+      expect(result).toBe(target);
+      expect(target.run.__profiler).toBeUndefined();
     });
 
     it('registers a method with the profiler', () => {
@@ -119,6 +168,12 @@ describe('decorator', () => {
 
       expect(wrapped).toBe(run);
       expect(wrapped.__profiler).toBeUndefined();
+    });
+
+    it('returns the original target for unsupported kinds', () => {
+      const initializer = () => 1;
+      const result = profile(initializer, { kind: 'field', name: 'count' });
+      expect(result).toBe(initializer);
     });
   });
 });

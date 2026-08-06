@@ -58,6 +58,6 @@
     "eslint": "^10.8.0",
     "globals": "^17.8.0",
     "jest": "^30.4.2",
-    "typescript": "^7.0.2"
+    "typescript": "^6.0.3"
   }
 }

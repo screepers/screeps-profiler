@@ -18,7 +18,7 @@ try {
 }
 
 function setupProfiler() {
-  depth = 0; // reset variables, this needs to be done each tick.
+  depth = 0; // reset depth, this needs to be done each tick.
   parentFn = TICK_NAME;
 
   Game.profiler = {
@@ -60,6 +60,7 @@ function setupProfiler() {
 
 function setupMemory(profileType, duration, filter) {
   const disableTick = Number.isInteger(duration) ? Game.time + duration : false;
+
   Memory.profiler = {
     map: {},
     totalTime: 0,
@@ -70,11 +71,12 @@ function setupMemory(profileType, duration, filter) {
     type: profileType,
     filter,
   };
+
   console.log(`Profiling type ${profileType} started at ${Game.time + 1} for ${duration} ticks`);
 }
 
 function resetMemory() {
-  Memory.profiler = null;
+  Memory.profiler = undefined;
 }
 
 function overloadCPUCalc() {
@@ -109,7 +111,6 @@ function wrapFunction(name, originalFunction) {
     const profiler = wrappedFunction.__profiler;
     if (profiler.isProfiling()) {
       const nameMatchesFilter = name === getFilter();
-      const start = Game.cpu.getUsed();
       if (nameMatchesFilter) {
         depth++;
       }
@@ -128,9 +129,9 @@ function wrapFunction(name, originalFunction) {
         result = originalFunction.apply(this, arguments);
       }
 
-      const endT = Game.cpu.getUsed()
+      const endT = Game.cpu.getUsed();
 
-      if (Profiler.actions.has(name)) {
+      if (Profiler.intents.has(name)) {
         const isOK = result === 0;
         Memory.profiler.totalOKs += isOK ? 1 : 0;
         Memory.profiler.totalNOKs += isOK ? 0 : 1;
@@ -233,8 +234,6 @@ function profileObjectFunctions(object, label) {
     const originalFunction = objectToWrap[functionName];
     objectToWrap[functionName] = profileFunction(originalFunction, extendedLabel);
   });
-
-  return objectToWrap;
 }
 
 function profileFunction(fn, functionName) {
@@ -297,11 +296,12 @@ const Profiler = {
     const POS = 1; // very fake, but improves readability
 
     const SCALE = 1000000;
-    const ACTION_COST_SCALED = 0.2 * SCALE;
+    const INTENT_COST_SCALED = 0.2 * SCALE;
 
     const elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
 
     // fill actual call
+    Profiler.checkMapItem(TICK_NAME);
     Memory.profiler.map[TICK_NAME].calls = elapsedTicks;
     Memory.profiler.map[TICK_NAME].time = Memory.profiler.totalTime;
     Memory.profiler.map[TICK_NAME].OKs = Memory.profiler.totalOKs;
@@ -326,47 +326,51 @@ const Profiler = {
       // exclusive costs
       const fn = Memory.profiler.map[fnName];
       // wall time
-      let uCPU_wall_outer = fn.time * SCALE;
+      let wallTimeOuter = fn.time * SCALE;
       // cost for [A]ction call that returns OK
-      let uCPU_action_outer = fn.OKs * ACTION_COST_SCALED;
+      let intentTimeOuter = fn.OKs * INTENT_COST_SCALED;
       // number of [A]ction calls that returns NOK
-      let NOKs_outer = fn.NOKs;
+      let NOKsOuter = fn.NOKs;
 
       let callsBody = '';
       for (const callName of Object.keys(fn.subs)) {
         // costs added to caller for inclusive costs
         const call = fn.subs[callName];
         // wall time
-        const uCPU_wall_inner = call.time * SCALE;
-        uCPU_wall_outer -= uCPU_wall_inner;
-        // cost for [A]ction call that returns OK
-        const uCPU_action_inner = call.OKs * ACTION_COST_SCALED;
-        uCPU_action_outer -= uCPU_action_inner;
-        // number of [A]ction calls that returns NOK
-        const NOKs_inner = call.NOKs;
-        NOKs_outer -= NOKs_inner;
+        const wallTimeInner = call.time * SCALE;
+        wallTimeOuter -= wallTimeInner;
+        // cost for intent call that returns OK
+        const intentTimeInner = call.OKs * INTENT_COST_SCALED;
+        intentTimeOuter -= intentTimeInner;
+        // number of intent calls that returns NOK
+        const NOKsInner = call.NOKs;
+        NOKsOuter -= NOKsInner;
 
-        callsBody += `cfn=${callName}\ncalls=${call.calls} ${POS}\n${POS} ${Math.round(uCPU_wall_inner)} ${Math.round(uCPU_action_inner)} ${NOKs_inner}\n`;
+        callsBody += `cfn=${callName}\ncalls=${call.calls} ${POS}\n${POS} `
+          + `${Math.round(wallTimeInner)} ${Math.round(intentTimeInner)} ${NOKsInner}\n`;
       }
 
-      body += `\nfn=${fnName}\n${POS} ${Math.round(uCPU_wall_outer)} ${Math.round(uCPU_action_outer)} ${NOKs_outer}\n${callsBody}`;
+      body += `\nfn=${fnName}\n${POS} ${Math.round(wallTimeOuter)} `
+        + `${Math.round(intentTimeOuter)} ${NOKsOuter}\n${callsBody}`;
     }
 
-    const uCPU_wall_total = Memory.profiler.totalTime * SCALE;
-    const uCPU_action_total = Memory.profiler.totalOKs * ACTION_COST_SCALED;
-    const NOKs_total = Memory.profiler.totalNOKs;
+    const nsWallTotal = Memory.profiler.totalTime * SCALE;
+    const nsIntentTotal = Memory.profiler.totalOKs * INTENT_COST_SCALED;
+    const NOKsTotal = Memory.profiler.totalNOKs;
 
-    const headerFormat = '# callgrind format\n';
+    const header = [];
+    header.push('# callgrind format');
     // it seems bug in q(k)cachegrind forces that event names start with different letters
-    const headerEv1 = 'event: wall_uCPU : uCPU total\n';
-    const headerEv2 = 'event: action_uCPU : uCPU [A]action cost\n';
-    const headerEv3 = 'event: delta_uCPU = wall_uCPU - action_uCPU: uCPU without [A]action cost\n';
-    const headerEv4 = 'event: NOKs : [A]actions that returned !== OK\n';
-    const headerEvAll = 'events: wall_uCPU action_uCPU NOKs\n';
+    header.push('event: wall_ns : nanoseconds total');
+    header.push('event: intent_ns : nanoseconds [I]intent cost');
+    header.push('event: delta_ns = wall_ns - intent_ns: nanoseconds without [I]intent cost');
+    header.push('event: NOKs : [I]intents that returned !== OK');
+    header.push('events: wall_ns intent_ns NOKs');
 
-    const headerSummary = `summary: ${Math.round(uCPU_wall_total)} ${Math.round(uCPU_action_total)} ${NOKs_total}\n`;
+    const summary = `summary: ${Math.round(nsWallTotal)} `
+      + `${Math.round(nsIntentTotal)} ${NOKsTotal}\n`;
 
-    return headerFormat + headerEv1 + headerEv2 + headerEv3 + headerEv4 + headerEvAll + headerSummary + body;
+    return header.join('\n') + summary + body;
   },
 
   output(passedOutputLengthLimit) {
@@ -475,7 +479,7 @@ const Profiler = {
     { name: 'Tombstone', val: Tombstone }
   ],
 
-  actions: new Set([
+  intents: new Set([
     'Game.notify',
     'Market.cancelOrder',
     'Market.changeOrderPrice',
@@ -588,7 +592,7 @@ const Profiler = {
     'StructureTower.attack',
     'StructureTower.repair',
     'StructureWall.destroy',
-    'StructureWall.notifyWhenAttacked'
+    'StructureWall.notifyWhenAttacked',
   ]),
 
   checkMapItem(functionName, map = Memory.profiler.map) {

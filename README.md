@@ -289,13 +289,25 @@ If a pre-compiled Kcachegrind binary is not available for your platform and you 
 
 On Windows, you can use [QCachegrind](https://sourceforge.net/projects/qcachegrindwin) to visualise the profiling result. That requires MSVC 2010 x86 redistributable, and download links in theREADME are outdated. You can get an official compatible redistributable [here](https://www.microsoft.com/en-us/download/details.aspx?id=26999).
 
+
+On Windows, you can use [QCacheGrind](https://sourceforge.net/projects/qcachegrindwin) to visualise the profiling result. That requires MSVC 2010 x86 redistributable, and download links in readme are outdated. But you can get an official compatible redistributable [here](https://www.microsoft.com/en-us/download/details.aspx?id=26999).
+
 Here is a sample callgrind output opened in [KCachegrind](https://kcachegrind.github.io/html/Home.html):
 
 ![KCachegrind screenshot](docs/callgrind.jpg)
 
 An alternative to a call graph viewer is to convert the callgrind output to a [DOT file](https://en.wikipedia.org/wiki/DOT_(graph_description_language)) using a tool such as [gprof2dot](https://github.com/jrfonseca/gprof2dot). The DOT file can then be visualized or converted into an image/PDF using [Graphviz](https://graphviz.org/).
 
-**Note:** In the callgrind format, time/cost is measured in nanoseconds. `1 Screeps CPU unit = 1 ms = 1,000,000 ns`.
+**Note:** In callgrind format time will be saved in nanoseconds. `1 Screeps CPU unit = 1 ms = 1'000'000 ns`.
+
+There are standalone time and count measurements done:
+
+- wall_ns: CPU usage measured before and after doing the call ("wall").
+- intent_ns: *Only* additional CPU cost for actions / intents. In documentation, these methods are marked with `[A]` symbol and said to have 0.2 CPU cost per call that returns OK.
+- delta_ns: Difference between wall CPU and additional cost. Can be used to determine how much the code actually takes to run.
+- NOKs: NOKs is Actions / intents that returned not OK.
+
+Technically, OK is `result === 0` where result is whatever function returned.
 
 For more details on the callgrind file format, see the [Callgrind Format Specification](https://valgrind.org/docs/manual/cl-format.html).
 

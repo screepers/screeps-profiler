@@ -301,41 +301,41 @@ describe('screeps-profiler', () => {
     });
 
     describe('intentTracking', () => {
-      it('counts OKs when an intent returns 0', () => {
+      it('counts intents when an intent function returns 0', () => {
         Game.profiler.profile(10);
         const move = profiler.registerFN(() => 0, 'Creep.move');
         move();
         move();
-        expect(Memory.profiler.totalOKs).toBe(2);
-        expect(Memory.profiler.totalNOKs).toBe(0);
-        expect(Memory.profiler.map['Creep.move'].OKs).toBe(2);
-        expect(Memory.profiler.map['Creep.move'].NOKs).toBe(0);
+        expect(Memory.profiler.totalIntents).toBe(2);
+        expect(Memory.profiler.totalIntentCalls).toBe(2);
+        expect(Memory.profiler.map['Creep.move'].intents).toBe(2);
+        expect(Memory.profiler.map['Creep.move'].intentCalls).toBe(2);
       });
 
-      it('counts NOKs when an intent returns non-zero', () => {
+      it('counts intent function calls', () => {
         Game.profiler.profile(10);
         const harvest = profiler.registerFN(() => -6, 'Creep.harvest');
         harvest();
         harvest();
         harvest();
-        expect(Memory.profiler.totalOKs).toBe(0);
-        expect(Memory.profiler.totalNOKs).toBe(3);
-        expect(Memory.profiler.map['Creep.harvest'].OKs).toBe(0);
-        expect(Memory.profiler.map['Creep.harvest'].NOKs).toBe(3);
+        expect(Memory.profiler.totalIntents).toBe(0);
+        expect(Memory.profiler.totalIntentCalls).toBe(3);
+        expect(Memory.profiler.map['Creep.harvest'].intents).toBe(0);
+        expect(Memory.profiler.map['Creep.harvest'].intentCalls).toBe(3);
       });
 
-      it('does not count non-intent functions as OKs or NOKs', () => {
+      it('does not count non-intent functions as OKs or ERRs', () => {
         Game.profiler.profile(10);
         const notAnIntent = profiler.registerFN(() => 0, 'someFakeFunction');
         notAnIntent();
         notAnIntent();
-        expect(Memory.profiler.totalOKs).toBe(0);
-        expect(Memory.profiler.totalNOKs).toBe(0);
-        expect(Memory.profiler.map.someFakeFunction.OKs).toBe(0);
-        expect(Memory.profiler.map.someFakeFunction.NOKs).toBe(0);
+        expect(Memory.profiler.totalIntents).toBe(0);
+        expect(Memory.profiler.totalIntentCalls).toBe(0);
+        expect(Memory.profiler.map.someFakeFunction.intents).toBe(0);
+        expect(Memory.profiler.map.someFakeFunction.intentCalls).toBe(0);
       });
 
-      it('counts mixed OK and NOK results on the same intent', () => {
+      it('counts mixed OK and ERR results from the same intent function', () => {
         Game.profiler.profile(10);
         let call = 0;
         const move = profiler.registerFN(() => (call++ % 2 === 0 ? 0 : -6), 'Creep.move');
@@ -343,10 +343,10 @@ describe('screeps-profiler', () => {
         move();
         move();
         move();
-        expect(Memory.profiler.totalOKs).toBe(2);
-        expect(Memory.profiler.totalNOKs).toBe(2);
-        expect(Memory.profiler.map['Creep.move'].OKs).toBe(2);
-        expect(Memory.profiler.map['Creep.move'].NOKs).toBe(2);
+        expect(Memory.profiler.totalIntents).toBe(2);
+        expect(Memory.profiler.totalIntentCalls).toBe(4);
+        expect(Memory.profiler.map['Creep.move'].intents).toBe(2);
+        expect(Memory.profiler.map['Creep.move'].intentCalls).toBe(4);
       });
 
       it('tracks intents registered through class prototypes', () => {
@@ -363,13 +363,15 @@ describe('screeps-profiler', () => {
         creep.move();
         creep.harvest();
 
-        expect(Memory.profiler.totalOKs).toBe(1);
-        expect(Memory.profiler.totalNOKs).toBe(1);
-        expect(Memory.profiler.map['Creep.move'].OKs).toBe(1);
-        expect(Memory.profiler.map['Creep.harvest'].NOKs).toBe(1);
+        expect(Memory.profiler.totalIntents).toBe(1);
+        expect(Memory.profiler.totalIntentCalls).toBe(2);
+        expect(Memory.profiler.map['Creep.move'].intents).toBe(1);
+        expect(Memory.profiler.map['Creep.move'].intentCalls).toBe(1);
+        expect(Memory.profiler.map['Creep.harvest'].intents).toBe(0);
+        expect(Memory.profiler.map['Creep.harvest'].intentCalls).toBe(1);
       });
 
-      it('aggregates nested intent results onto the parent call', () => {
+      it('adds intent results to self and parents/callers', () => {
         Game.profiler.profile(10);
         const move = profiler.registerFN(() => 0, 'Creep.move');
         const harvest = profiler.registerFN(() => -6, 'Creep.harvest');
@@ -377,16 +379,21 @@ describe('screeps-profiler', () => {
           move();
           harvest();
         }, 'someFakeParent');
+        move();
         parent();
-        expect(Memory.profiler.totalOKs).toBe(1);
-        expect(Memory.profiler.totalNOKs).toBe(1);
-        expect(Memory.profiler.map.someFakeParent.OKs).toBe(1);
-        expect(Memory.profiler.map.someFakeParent.NOKs).toBe(1);
-        expect(Memory.profiler.map.someFakeParent.subs['Creep.move'].OKs).toBe(1);
-        expect(Memory.profiler.map.someFakeParent.subs['Creep.harvest'].NOKs).toBe(1);
+        expect(Memory.profiler.totalIntents).toBe(2);
+        expect(Memory.profiler.totalIntentCalls).toBe(3);
+        expect(Memory.profiler.map['Creep.move'].intents).toBe(2);
+        expect(Memory.profiler.map['Creep.move'].intentCalls).toBe(2);
+        expect(Memory.profiler.map.someFakeParent.intents).toBe(1);
+        expect(Memory.profiler.map.someFakeParent.intentCalls).toBe(2);
+        expect(Memory.profiler.map.someFakeParent.subs['Creep.move'].intents).toBe(1);
+        expect(Memory.profiler.map.someFakeParent.subs['Creep.move'].intentCalls).toBe(1);
+        expect(Memory.profiler.map.someFakeParent.subs['Creep.harvest'].intents).toBe(0);
+        expect(Memory.profiler.map.someFakeParent.subs['Creep.harvest'].intentCalls).toBe(1);
       });
 
-      it('includes intent costs and NOKs in callgrind output', () => {
+      it('includes intents and intent function calls in callgrind output', () => {
         Game.profiler.profile(10);
         const move = profiler.registerFN(() => 0, 'Creep.move');
         const harvest = profiler.registerFN(() => -6, 'Creep.harvest');
@@ -394,9 +401,9 @@ describe('screeps-profiler', () => {
         move();
         harvest();
         const format = profiler.callgrind();
-        expect(format).toMatch(/events: wall_ns intent_ns NOKs/);
-        // 2 OK intents * 0.2 CPU * 1e6 scale = 400000 intent_ns; 1 NOK
-        expect(format).toMatch(/summary: \d+ 400000 1/);
+        expect(format).toMatch(/events: ns ri fi/);
+        // 2 intents; 3 intent function calls
+        expect(format).toMatch(/summary: \d+ 2 3/);
         expect(format).toMatch(/fn=Creep\.move/);
         expect(format).toMatch(/fn=Creep\.harvest/);
       });
@@ -414,10 +421,10 @@ describe('screeps-profiler', () => {
         const format = profiler.callgrind();
         // parent inclusive costs cancel out against children → exclusive 0 / 0
         expect(format).toMatch(/fn=someFakeParent\n1 \d+ 0 0\n/);
-        expect(format).toMatch(/cfn=Creep\.move\ncalls=1 1\n1 \d+ 200000 0\n/);
+        expect(format).toMatch(/cfn=Creep\.move\ncalls=1 1\n1 \d+ 1 1\n/);
         expect(format).toMatch(/cfn=Creep\.harvest\ncalls=1 1\n1 \d+ 0 1\n/);
         // leaf exclusive costs
-        expect(format).toMatch(/fn=Creep\.move\n1 \d+ 200000 0\n/);
+        expect(format).toMatch(/fn=Creep\.move\n1 \d+ 1 1\n/);
         expect(format).toMatch(/fn=Creep\.harvest\n1 \d+ 0 1\n/);
       });
 
@@ -426,14 +433,15 @@ describe('screeps-profiler', () => {
         const move = profiler.registerFN(() => 0, 'Creep.move');
 
         move();
-        expect(Memory.profiler.totalOKs).toBe(1);
+        expect(Memory.profiler.totalIntents).toBe(1);
         expect(Memory.profiler.map['Creep.move']).toBeUndefined();
+        expect(Memory.profiler.map.someFakeParent).toBeUndefined();
 
         const parent = profiler.registerFN(() => move(), 'someFakeParent');
         parent();
-        expect(Memory.profiler.totalOKs).toBe(2);
-        expect(Memory.profiler.map['Creep.move'].OKs).toBe(1);
-        expect(Memory.profiler.map.someFakeParent.OKs).toBe(1);
+        expect(Memory.profiler.totalIntents).toBe(2);
+        expect(Memory.profiler.map['Creep.move'].intents).toBe(1);
+        expect(Memory.profiler.map.someFakeParent.intents).toBe(1);
       });
     });
 

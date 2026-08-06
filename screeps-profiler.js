@@ -64,8 +64,8 @@ function setupMemory(profileType, duration, filter) {
   Memory.profiler = {
     map: {},
     totalTime: 0,
-    totalOKs: 0,
-    totalNOKs: 0,
+    totalIntents: 0,
+    totalIntentCalls: 0,
     enabledTick: Game.time + 1,
     disableTick,
     type: profileType,
@@ -76,7 +76,7 @@ function setupMemory(profileType, duration, filter) {
 }
 
 function resetMemory() {
-  Memory.profiler = undefined;
+  delete Memory.profiler;
 }
 
 function overloadCPUCalc() {
@@ -118,8 +118,8 @@ function wrapFunction(name, originalFunction) {
       const curParent = parentFn;
       parentFn = name;
 
-      const startOKs = Memory.profiler.totalOKs;
-      const startNOKs = Memory.profiler.totalNOKs;
+      const startIntents = Memory.profiler.totalIntents;
+      const startIntentCalls = Memory.profiler.totalIntentCalls;
       const startT = Game.cpu.getUsed();
 
       let result;
@@ -132,18 +132,23 @@ function wrapFunction(name, originalFunction) {
       const endT = Game.cpu.getUsed();
 
       if (Profiler.intents.has(name)) {
-        const isOK = result === 0;
-        Memory.profiler.totalOKs += isOK ? 1 : 0;
-        Memory.profiler.totalNOKs += isOK ? 0 : 1;
+        Memory.profiler.totalIntents += (result === 0) ? 1 : 0;
+        Memory.profiler.totalIntentCalls++;
       }
 
-      const endOKs = Memory.profiler.totalOKs;
-      const endNOKs = Memory.profiler.totalNOKs;
+      const endIntents = Memory.profiler.totalIntents;
+      const endIntentCalls = Memory.profiler.totalIntentCalls;
 
       parentFn = curParent;
 
       if (depth > 0 || !getFilter()) {
-        Profiler.record(name, endT - startT, endOKs - startOKs, endNOKs - startNOKs, parentFn);
+        Profiler.record(
+          name,
+          endT - startT,
+          endIntents - startIntents,
+          endIntentCalls - startIntentCalls,
+          parentFn,
+        );
       }
 
       if (nameMatchesFilter) {
@@ -293,84 +298,85 @@ const Profiler = {
   callgrind() {
     if (!Memory.profiler || !Memory.profiler.enabledTick) return null;
 
-    const POS = 1; // very fake, but improves readability
+    // A fake position indicator is used because the profiler currently does
+    // not attempt to determine the original file names or line numbers of any
+    // profiled code
+    const POS = 1;
 
-    const SCALE = 1000000;
-    const INTENT_COST_SCALED = 0.2 * SCALE;
+    const TIME_SCALE = 1_000_000;
 
     const elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
+    const totalCpu = Memory.profiler.totalTime;
+    const totalIntents = Memory.profiler.totalIntents;
+    const totalIntentCalls = Memory.profiler.totalIntentCalls;
 
-    // fill actual call
     Profiler.checkMapItem(TICK_NAME);
     Memory.profiler.map[TICK_NAME].calls = elapsedTicks;
-    Memory.profiler.map[TICK_NAME].time = Memory.profiler.totalTime;
-    Memory.profiler.map[TICK_NAME].OKs = Memory.profiler.totalOKs;
-    Memory.profiler.map[TICK_NAME].NOKs = Memory.profiler.totalNOKs;
+    Memory.profiler.map[TICK_NAME].time = totalCpu;
+    Memory.profiler.map[TICK_NAME].intents = totalIntents;
+    Memory.profiler.map[TICK_NAME].intentCalls = totalIntentCalls;
 
-    // fill "holder" of the call tree
     Profiler.checkMapItem(ROOT_NAME);
     Memory.profiler.map[ROOT_NAME].calls = 1;
-    Memory.profiler.map[ROOT_NAME].time = Memory.profiler.totalTime;
-    Memory.profiler.map[ROOT_NAME].OKs = Memory.profiler.totalOKs;
-    Memory.profiler.map[ROOT_NAME].NOKs = Memory.profiler.totalNOKs;
+    Memory.profiler.map[ROOT_NAME].time = totalCpu;
+    Memory.profiler.map[ROOT_NAME].intents = totalIntents;
+    Memory.profiler.map[ROOT_NAME].intentCalls = totalIntentCalls;
 
-    // "holder" has all the costs as well, but will be subtracted in the loop
     Profiler.checkMapItem(TICK_NAME, Memory.profiler.map[ROOT_NAME].subs);
     Memory.profiler.map[ROOT_NAME].subs[TICK_NAME].calls = elapsedTicks;
-    Memory.profiler.map[ROOT_NAME].subs[TICK_NAME].time = Memory.profiler.totalTime;
-    Memory.profiler.map[ROOT_NAME].subs[TICK_NAME].OKs = Memory.profiler.totalOKs;
-    Memory.profiler.map[ROOT_NAME].subs[TICK_NAME].NOKs = Memory.profiler.totalNOKs;
+    Memory.profiler.map[ROOT_NAME].subs[TICK_NAME].time = totalCpu;
+    Memory.profiler.map[ROOT_NAME].subs[TICK_NAME].intents = totalIntents;
+    Memory.profiler.map[ROOT_NAME].subs[TICK_NAME].intentCalls = totalIntentCalls;
 
     let body = '';
-    for (const fnName of Object.keys(Memory.profiler.map)) {
-      // exclusive costs
-      const fn = Memory.profiler.map[fnName];
-      // wall time
-      let wallTimeOuter = fn.time * SCALE;
-      // cost for [A]ction call that returns OK
-      let intentTimeOuter = fn.OKs * INTENT_COST_SCALED;
-      // number of [A]ction calls that returns NOK
-      let NOKsOuter = fn.NOKs;
+    for (const fnName in Memory.profiler.map) {
+      // Get the total costs measured for each profiled function
+      const fnCosts = Memory.profiler.map[fnName];
+      let fnExcTime = fnCosts.time * TIME_SCALE;
+      let fnExcIntents = fnCosts.intents;
+      let fnExcIntentCalls = fnCosts.intentCalls;
 
-      let callsBody = '';
-      for (const callName of Object.keys(fn.subs)) {
-        // costs added to caller for inclusive costs
-        const call = fn.subs[callName];
-        // wall time
-        const wallTimeInner = call.time * SCALE;
-        wallTimeOuter -= wallTimeInner;
-        // cost for intent call that returns OK
-        const intentTimeInner = call.OKs * INTENT_COST_SCALED;
-        intentTimeOuter -= intentTimeInner;
-        // number of intent calls that returns NOK
-        const NOKsInner = call.NOKs;
-        NOKsOuter -= NOKsInner;
+      const calleesBody = [];
+      for (const calleeFnName in fnCosts.subs) {
+        // Costs added to caller by this function
+        const callee = fnCosts.subs[calleeFnName];
+        const time = callee.time * TIME_SCALE;
+        const intents = callee.intents;
+        const intentCalls = callee.intentCalls;
 
-        callsBody += `cfn=${callName}\ncalls=${call.calls} ${POS}\n${POS} `
-          + `${Math.round(wallTimeInner)} ${Math.round(intentTimeInner)} ${NOKsInner}\n`;
+        // Exclude callee costs from caller costs
+        fnExcTime -= time;
+        fnExcIntents -= intents;
+        fnExcIntentCalls -= intentCalls;
+
+        calleesBody.push(
+          `cfn=${calleeFnName}`,
+          `calls=${callee.calls} ${POS}`,
+          `${POS} ${Math.round(time)} ${Math.round(intents)} ${intentCalls}`,
+        );
       }
 
-      body += `\nfn=${fnName}\n${POS} ${Math.round(wallTimeOuter)} `
-        + `${Math.round(intentTimeOuter)} ${NOKsOuter}\n${callsBody}`;
+      body += [
+        `fn=${fnName}`,
+        `${POS} ${Math.round(fnExcTime)} ${Math.round(fnExcIntents)} ${fnExcIntentCalls}`,
+        ...calleesBody,
+      ].join('\n') + '\n\n';
     }
 
-    const nsWallTotal = Memory.profiler.totalTime * SCALE;
-    const nsIntentTotal = Memory.profiler.totalOKs * INTENT_COST_SCALED;
-    const NOKsTotal = Memory.profiler.totalNOKs;
+    // A bug in q(k?)Cachegrind requires event names to start with different letters
+    const totalTime = totalCpu * TIME_SCALE;
+    const header = [
+      '# callgrind format',
+      'event: ns : Time (ns)',
+      'event: i_ns = 200000 * ri : Intent Time (ns)',
+      'event: o_ns = ns - i_ns: Overhead Time (ns)',
+      'event: ri : Registered Intents',
+      'event: fi : Intent Function Calls',
+      'events: ns ri fi',
+      `summary: ${Math.round(totalTime)} ${Math.round(totalIntents)} ${totalIntentCalls}`,
+    ].join('\n') + '\n\n';
 
-    const header = [];
-    header.push('# callgrind format');
-    // it seems bug in q(k)cachegrind forces that event names start with different letters
-    header.push('event: wall_ns : nanoseconds total');
-    header.push('event: intent_ns : nanoseconds [I]intent cost');
-    header.push('event: delta_ns = wall_ns - intent_ns: nanoseconds without [I]intent cost');
-    header.push('event: NOKs : [I]intents that returned !== OK');
-    header.push('events: wall_ns intent_ns NOKs');
-
-    const summary = `summary: ${Math.round(nsWallTotal)} `
-      + `${Math.round(nsIntentTotal)} ${NOKsTotal}\n`;
-
-    return header.join('\n') + summary + body;
+    return header + body;
   },
 
   output(passedOutputLengthLimit) {
@@ -382,10 +388,15 @@ const Profiler = {
     const endTick = Math.min(Memory.profiler.disableTick || Game.time, Game.time);
     const startTick = Memory.profiler.enabledTick;
     const elapsedTicks = endTick - startTick + 1;
-    const header = 'calls\t\ttime\t\tavg\t\tfunction';
+    const totalTime = Memory.profiler.totalTime
+    const totalIntents = Memory.profiler.totalIntents;
+    const overhead = (totalTime - totalIntents * 0.2) / totalTime;
+    const header = 'calls\t\ttime\t\tavg\t\tintents\t\tfunction';
     const footer = [
-      `Avg: ${(Memory.profiler.totalTime / elapsedTicks).toFixed(2)}`,
-      `Total: ${Memory.profiler.totalTime.toFixed(2)}`,
+      `Avg: ${(totalTime / elapsedTicks).toFixed(2)}`,
+      `Total: ${totalTime.toFixed(2)}`,
+      `Intents: ${totalIntents}`,
+      `Overhead: ${(overhead * 100).toFixed(2)}%`,
       `Ticks: ${elapsedTicks}`,
     ].join('\t');
 
@@ -414,17 +425,17 @@ const Profiler = {
         name: functionName,
         calls: functionCalls.calls,
         totalTime: functionCalls.time,
+        totalIntents: functionCalls.intents,
         averageTime: functionCalls.time / functionCalls.calls,
       };
-    }).sort((val1, val2) => {
-      return val2.totalTime - val1.totalTime;
-    });
+    }).sort((val1, val2) => val2.totalTime - val1.totalTime);
 
     const lines = stats.map(data => {
       return [
         data.calls,
         data.totalTime.toFixed(1),
         data.averageTime.toFixed(3),
+        data.totalIntents,
         data.name,
       ].join('\t\t');
     });
@@ -579,8 +590,8 @@ const Profiler = {
     'StructureSpawn.spawnCreep',
     'StructureSpawn.recycleCreep',
     'StructureSpawn.renewCreep',
-    // StructureSpawn.Spawning.cancel
-    // StructureSpawn.Spawning.setDirections
+    'StructureSpawn.Spawning.cancel',
+    'StructureSpawn.Spawning.setDirections',
     'StructureStorage.destroy',
     'StructureStorage.notifyWhenAttacked',
     'StructureTerminal.destroy',
@@ -600,26 +611,26 @@ const Profiler = {
       map[functionName] = {
         time: 0,
         calls: 0,
-        OKs: 0,
-        NOKs: 0,
+        intents: 0,
+        intentCalls: 0,
         subs: {},
       };
     }
   },
 
-  record(functionName, time, OKs, NOKs, parent) {
+  record(functionName, time, intents, intentCalls, parent) {
     this.checkMapItem(functionName);
-    Memory.profiler.map[functionName].time += time;
     Memory.profiler.map[functionName].calls++;
-    Memory.profiler.map[functionName].OKs += OKs;
-    Memory.profiler.map[functionName].NOKs += NOKs;
+    Memory.profiler.map[functionName].time += time;
+    Memory.profiler.map[functionName].intents += intents;
+    Memory.profiler.map[functionName].intentCalls += intentCalls;
     if (parent) {
       this.checkMapItem(parent);
       this.checkMapItem(functionName, Memory.profiler.map[parent].subs);
-      Memory.profiler.map[parent].subs[functionName].time += time;
       Memory.profiler.map[parent].subs[functionName].calls++;
-      Memory.profiler.map[parent].subs[functionName].OKs += OKs;
-      Memory.profiler.map[parent].subs[functionName].NOKs += NOKs;
+      Memory.profiler.map[parent].subs[functionName].time += time;
+      Memory.profiler.map[parent].subs[functionName].intents += intents;
+      Memory.profiler.map[parent].subs[functionName].intentCalls += intentCalls;
     }
   },
 

@@ -300,6 +300,143 @@ describe('screeps-profiler', () => {
       });
     });
 
+    describe('intentTracking', () => {
+      it('counts OKs when an intent returns 0', () => {
+        Game.profiler.profile(10);
+        const move = profiler.registerFN(() => 0, 'Creep.move');
+        move();
+        move();
+        expect(Memory.profiler.totalOKs).toBe(2);
+        expect(Memory.profiler.totalNOKs).toBe(0);
+        expect(Memory.profiler.map['Creep.move'].OKs).toBe(2);
+        expect(Memory.profiler.map['Creep.move'].NOKs).toBe(0);
+      });
+
+      it('counts NOKs when an intent returns non-zero', () => {
+        Game.profiler.profile(10);
+        const harvest = profiler.registerFN(() => -6, 'Creep.harvest');
+        harvest();
+        harvest();
+        harvest();
+        expect(Memory.profiler.totalOKs).toBe(0);
+        expect(Memory.profiler.totalNOKs).toBe(3);
+        expect(Memory.profiler.map['Creep.harvest'].OKs).toBe(0);
+        expect(Memory.profiler.map['Creep.harvest'].NOKs).toBe(3);
+      });
+
+      it('does not count non-intent functions as OKs or NOKs', () => {
+        Game.profiler.profile(10);
+        const notAnIntent = profiler.registerFN(() => 0, 'someFakeFunction');
+        notAnIntent();
+        notAnIntent();
+        expect(Memory.profiler.totalOKs).toBe(0);
+        expect(Memory.profiler.totalNOKs).toBe(0);
+        expect(Memory.profiler.map.someFakeFunction.OKs).toBe(0);
+        expect(Memory.profiler.map.someFakeFunction.NOKs).toBe(0);
+      });
+
+      it('counts mixed OK and NOK results on the same intent', () => {
+        Game.profiler.profile(10);
+        let call = 0;
+        const move = profiler.registerFN(() => (call++ % 2 === 0 ? 0 : -6), 'Creep.move');
+        move();
+        move();
+        move();
+        move();
+        expect(Memory.profiler.totalOKs).toBe(2);
+        expect(Memory.profiler.totalNOKs).toBe(2);
+        expect(Memory.profiler.map['Creep.move'].OKs).toBe(2);
+        expect(Memory.profiler.map['Creep.move'].NOKs).toBe(2);
+      });
+
+      it('tracks intents registered through class prototypes', () => {
+        Game.profiler.profile(10);
+        Creep.prototype.move = function move() {
+          return 0;
+        };
+        Creep.prototype.harvest = function harvest() {
+          return -6;
+        };
+        profiler.registerClass(Creep, 'Creep');
+
+        const creep = new Creep();
+        creep.move();
+        creep.harvest();
+
+        expect(Memory.profiler.totalOKs).toBe(1);
+        expect(Memory.profiler.totalNOKs).toBe(1);
+        expect(Memory.profiler.map['Creep.move'].OKs).toBe(1);
+        expect(Memory.profiler.map['Creep.harvest'].NOKs).toBe(1);
+      });
+
+      it('aggregates nested intent results onto the parent call', () => {
+        Game.profiler.profile(10);
+        const move = profiler.registerFN(() => 0, 'Creep.move');
+        const harvest = profiler.registerFN(() => -6, 'Creep.harvest');
+        const parent = profiler.registerFN(() => {
+          move();
+          harvest();
+        }, 'someFakeParent');
+        parent();
+        expect(Memory.profiler.totalOKs).toBe(1);
+        expect(Memory.profiler.totalNOKs).toBe(1);
+        expect(Memory.profiler.map.someFakeParent.OKs).toBe(1);
+        expect(Memory.profiler.map.someFakeParent.NOKs).toBe(1);
+        expect(Memory.profiler.map.someFakeParent.subs['Creep.move'].OKs).toBe(1);
+        expect(Memory.profiler.map.someFakeParent.subs['Creep.harvest'].NOKs).toBe(1);
+      });
+
+      it('includes intent costs and NOKs in callgrind output', () => {
+        Game.profiler.profile(10);
+        const move = profiler.registerFN(() => 0, 'Creep.move');
+        const harvest = profiler.registerFN(() => -6, 'Creep.harvest');
+        move();
+        move();
+        harvest();
+        const format = profiler.callgrind();
+        expect(format).toMatch(/events: wall_ns intent_ns NOKs/);
+        // 2 OK intents * 0.2 CPU * 1e6 scale = 400000 intent_ns; 1 NOK
+        expect(format).toMatch(/summary: \d+ 400000 1/);
+        expect(format).toMatch(/fn=Creep\.move/);
+        expect(format).toMatch(/fn=Creep\.harvest/);
+      });
+
+      it('reports exclusive intent costs in callgrind for nested calls', () => {
+        Game.profiler.profile(10);
+        const move = profiler.registerFN(() => 0, 'Creep.move');
+        const harvest = profiler.registerFN(() => -6, 'Creep.harvest');
+        const parent = profiler.registerFN(() => {
+          move();
+          harvest();
+        }, 'someFakeParent');
+        parent();
+
+        const format = profiler.callgrind();
+        // parent inclusive costs cancel out against children → exclusive 0 / 0
+        expect(format).toMatch(/fn=someFakeParent\n1 \d+ 0 0\n/);
+        expect(format).toMatch(/cfn=Creep\.move\ncalls=1 1\n1 \d+ 200000 0\n/);
+        expect(format).toMatch(/cfn=Creep\.harvest\ncalls=1 1\n1 \d+ 0 1\n/);
+        // leaf exclusive costs
+        expect(format).toMatch(/fn=Creep\.move\n1 \d+ 200000 0\n/);
+        expect(format).toMatch(/fn=Creep\.harvest\n1 \d+ 0 1\n/);
+      });
+
+      it('still counts intents under a filter even when map recording is skipped', () => {
+        Game.profiler.profile(10, 'someFakeParent');
+        const move = profiler.registerFN(() => 0, 'Creep.move');
+
+        move();
+        expect(Memory.profiler.totalOKs).toBe(1);
+        expect(Memory.profiler.map['Creep.move']).toBeUndefined();
+
+        const parent = profiler.registerFN(() => move(), 'someFakeParent');
+        parent();
+        expect(Memory.profiler.totalOKs).toBe(2);
+        expect(Memory.profiler.map['Creep.move'].OKs).toBe(1);
+        expect(Memory.profiler.map.someFakeParent.OKs).toBe(1);
+      });
+    });
+
     describe('starting', () => {
       it('can start in streaming mode', () => {
         Game.profiler.stream(1);
@@ -365,7 +502,7 @@ describe('screeps-profiler', () => {
       it('does nothing when the profiler is not running', () => {
         Game.profiler.reset();
         Game.profiler.restart();
-        expect(Memory.profiler).toBeNull();
+        expect(Memory.profiler).toBeUndefined();
       });
     });
 

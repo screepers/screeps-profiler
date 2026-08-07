@@ -1,9 +1,12 @@
 'use strict';
 
+const ROOT_NAME = '(root)';
+const TICK_NAME = '(tick)';
+
 let usedOnStart = 0;
 let enabled = false;
 let depth = 0;
-let parentFn = '(tick)';
+let parentFn = TICK_NAME;
 
 class ProfilerError extends Error {}
 
@@ -16,7 +19,8 @@ try {
 
 function setupProfiler() {
   depth = 0; // reset depth, this needs to be done each tick.
-  parentFn = '(tick)';
+  parentFn = TICK_NAME;
+
   Game.profiler = {
     stream(duration, filter) {
       setupMemory('stream', duration || 10, filter);
@@ -55,21 +59,24 @@ function setupProfiler() {
 }
 
 function setupMemory(profileType, duration, filter) {
-  resetMemory();
   const disableTick = Number.isInteger(duration) ? Game.time + duration : false;
+
   Memory.profiler = {
     map: {},
     totalTime: 0,
+    totalIntents: 0,
+    totalIntentCalls: 0,
     enabledTick: Game.time + 1,
     disableTick,
     type: profileType,
     filter,
   };
+
   console.log(`Profiling type ${profileType} started at ${Game.time + 1} for ${duration} ticks`);
 }
 
 function resetMemory() {
-  Memory.profiler = null;
+  delete Memory.profiler;
 }
 
 function overloadCPUCalc() {
@@ -104,32 +111,57 @@ function wrapFunction(name, originalFunction) {
     const profiler = wrappedFunction.__profiler;
     if (profiler.isProfiling()) {
       const nameMatchesFilter = name === getFilter();
-      const start = Game.cpu.getUsed();
       if (nameMatchesFilter) {
         depth++;
       }
+
       const curParent = parentFn;
       parentFn = name;
+
+      const startIntents = Memory.profiler.totalIntents;
+      const startIntentCalls = Memory.profiler.totalIntentCalls;
+      const startT = Game.cpu.getUsed();
+
       let result;
       if (this && this.constructor === wrappedFunction) {
         result = new originalFunction(...arguments);
       } else {
         result = originalFunction.apply(this, arguments);
       }
-      parentFn = curParent;
-      if (depth > 0 || !getFilter()) {
-        const end = Game.cpu.getUsed();
-        profiler.record(name, end - start, parentFn);
+
+      const endT = Game.cpu.getUsed();
+
+      if (Profiler.intents.has(name)) {
+        Memory.profiler.totalIntents += (result === 0) ? 1 : 0;
+        Memory.profiler.totalIntentCalls++;
       }
+
+      const endIntents = Memory.profiler.totalIntents;
+      const endIntentCalls = Memory.profiler.totalIntentCalls;
+
+      parentFn = curParent;
+
+      if (depth > 0 || !getFilter()) {
+        Profiler.record(
+          name,
+          endT - startT,
+          endIntents - startIntents,
+          endIntentCalls - startIntentCalls,
+          parentFn,
+        );
+      }
+
       if (nameMatchesFilter) {
         depth--;
       }
+
       return result;
     }
 
     if (this && this.constructor === wrappedFunction) {
       return new originalFunction(...arguments);
     }
+
     return originalFunction.apply(this, arguments);
   }
 
@@ -207,8 +239,6 @@ function profileObjectFunctions(object, label) {
     const originalFunction = objectToWrap[functionName];
     objectToWrap[functionName] = profileFunction(originalFunction, extendedLabel);
   });
-
-  return objectToWrap;
 }
 
 function profileFunction(fn, functionName) {
@@ -267,34 +297,86 @@ const Profiler = {
 
   callgrind() {
     if (!Memory.profiler || !Memory.profiler.enabledTick) return null;
+
+    // A fake position indicator is used because the profiler currently does
+    // not attempt to determine the original file names or line numbers of any
+    // profiled code
+    const POS = 1;
+
+    const TIME_SCALE = 1_000_000;
+
     const elapsedTicks = Game.time - Memory.profiler.enabledTick + 1;
-    Profiler.checkMapItem('(tick)');
-    Memory.profiler.map['(tick)'].calls = elapsedTicks;
-    Memory.profiler.map['(tick)'].time = Memory.profiler.totalTime;
-    Profiler.checkMapItem('(root)');
-    Memory.profiler.map['(root)'].calls = 1;
-    Memory.profiler.map['(root)'].time = Memory.profiler.totalTime;
-    Profiler.checkMapItem('(tick)', Memory.profiler.map['(root)'].subs);
-    Memory.profiler.map['(root)'].subs['(tick)'].calls = elapsedTicks;
-    Memory.profiler.map['(root)'].subs['(tick)'].time = Memory.profiler.totalTime;
-    let body = `events: ns\nsummary: ${Math.round(
-      Memory.profiler.totalTime * 1000000
-      )}\n`;
-    for (const fnName of Object.keys(Memory.profiler.map)) {
-      const fn = Memory.profiler.map[fnName];
-      let callsBody = '';
-      let callsTime = 0;
-      for (const callName of Object.keys(fn.subs)) {
-        const call = fn.subs[callName];
-        const ns = Math.round(call.time * 1000000);
-        callsBody += `cfn=${callName}\ncalls=${call.calls} 1\n1 ${ns}\n`;
-        callsTime += call.time;
+    const totalCpu = Memory.profiler.totalTime;
+    const totalIntents = Memory.profiler.totalIntents;
+    const totalIntentCalls = Memory.profiler.totalIntentCalls;
+
+    Profiler.checkMapItem(TICK_NAME);
+    Memory.profiler.map[TICK_NAME].calls = elapsedTicks;
+    Memory.profiler.map[TICK_NAME].time = totalCpu;
+    Memory.profiler.map[TICK_NAME].intents = totalIntents;
+    Memory.profiler.map[TICK_NAME].intentCalls = totalIntentCalls;
+
+    Profiler.checkMapItem(ROOT_NAME);
+    Memory.profiler.map[ROOT_NAME].calls = 1;
+    Memory.profiler.map[ROOT_NAME].time = totalCpu;
+    Memory.profiler.map[ROOT_NAME].intents = totalIntents;
+    Memory.profiler.map[ROOT_NAME].intentCalls = totalIntentCalls;
+
+    Profiler.checkMapItem(TICK_NAME, Memory.profiler.map[ROOT_NAME].subs);
+    Memory.profiler.map[ROOT_NAME].subs[TICK_NAME].calls = elapsedTicks;
+    Memory.profiler.map[ROOT_NAME].subs[TICK_NAME].time = totalCpu;
+    Memory.profiler.map[ROOT_NAME].subs[TICK_NAME].intents = totalIntents;
+    Memory.profiler.map[ROOT_NAME].subs[TICK_NAME].intentCalls = totalIntentCalls;
+
+    let body = '';
+    for (const fnName in Memory.profiler.map) {
+      // Get the total costs measured for each profiled function
+      const fnCosts = Memory.profiler.map[fnName];
+      let fnExcTime = fnCosts.time * TIME_SCALE;
+      let fnExcIntents = fnCosts.intents;
+      let fnExcIntentCalls = fnCosts.intentCalls;
+
+      const calleesBody = [];
+      for (const calleeFnName in fnCosts.subs) {
+        // Costs added to caller by this function
+        const callee = fnCosts.subs[calleeFnName];
+        const time = callee.time * TIME_SCALE;
+        const intents = callee.intents;
+        const intentCalls = callee.intentCalls;
+
+        // Exclude callee costs from caller costs
+        fnExcTime -= time;
+        fnExcIntents -= intents;
+        fnExcIntentCalls -= intentCalls;
+
+        calleesBody.push(
+          `cfn=${calleeFnName}`,
+          `calls=${callee.calls} ${POS}`,
+          `${POS} ${Math.round(time)} ${Math.round(intents)} ${intentCalls}`,
+        );
       }
-      body += `\nfn=${fnName}\n1 ${Math.round(
-        (fn.time - callsTime) * 1000000
-        )}\n${callsBody}`;
+
+      body += [
+        `fn=${fnName}`,
+        `${POS} ${Math.round(fnExcTime)} ${Math.round(fnExcIntents)} ${fnExcIntentCalls}`,
+        ...calleesBody,
+      ].join('\n') + '\n\n';
     }
-    return body;
+
+    // A bug in q(k?)Cachegrind requires event names to start with different letters
+    const totalTime = totalCpu * TIME_SCALE;
+    const header = [
+      '# callgrind format',
+      'event: ns : Time (ns)',
+      'event: i_ns = 200000 * ri : Intent Time (ns)',
+      'event: o_ns = ns - i_ns: Overhead Time (ns)',
+      'event: ri : Registered Intents',
+      'event: fi : Intent Function Calls',
+      'events: ns ri fi',
+      `summary: ${Math.round(totalTime)} ${Math.round(totalIntents)} ${totalIntentCalls}`,
+    ].join('\n') + '\n\n';
+
+    return header + body;
   },
 
   output(passedOutputLengthLimit) {
@@ -306,10 +388,15 @@ const Profiler = {
     const endTick = Math.min(Memory.profiler.disableTick || Game.time, Game.time);
     const startTick = Memory.profiler.enabledTick;
     const elapsedTicks = endTick - startTick + 1;
-    const header = 'calls\t\ttime\t\tavg\t\tfunction';
+    const totalTime = Memory.profiler.totalTime
+    const totalIntents = Memory.profiler.totalIntents;
+    const overhead = (totalTime - totalIntents * 0.2) / totalTime;
+    const header = 'calls\t\ttime\t\tavg\t\tintents\t\tfunction';
     const footer = [
-      `Avg: ${(Memory.profiler.totalTime / elapsedTicks).toFixed(2)}`,
-      `Total: ${Memory.profiler.totalTime.toFixed(2)}`,
+      `Avg: ${(totalTime / elapsedTicks).toFixed(2)}`,
+      `Total: ${totalTime.toFixed(2)}`,
+      `Intents: ${totalIntents}`,
+      `Overhead: ${(overhead * 100).toFixed(2)}%`,
       `Ticks: ${elapsedTicks}`,
     ].join('\t');
 
@@ -338,17 +425,17 @@ const Profiler = {
         name: functionName,
         calls: functionCalls.calls,
         totalTime: functionCalls.time,
+        totalIntents: functionCalls.intents,
         averageTime: functionCalls.time / functionCalls.calls,
       };
-    }).sort((val1, val2) => {
-      return val2.totalTime - val1.totalTime;
-    });
+    }).sort((val1, val2) => val2.totalTime - val1.totalTime);
 
     const lines = stats.map(data => {
       return [
         data.calls,
         data.totalTime.toFixed(1),
         data.averageTime.toFixed(3),
+        data.totalIntents,
         data.name,
       ].join('\t\t');
     });
@@ -395,32 +482,155 @@ const Profiler = {
     { name: 'StructureRampart', val: StructureRampart },
     { name: 'StructureRoad', val: StructureRoad },
     { name: 'StructureSpawn', val: StructureSpawn },
+    // StructureSpawn.Spawning
     { name: 'StructureStorage', val: StructureStorage },
     { name: 'StructureTerminal', val: StructureTerminal },
     { name: 'StructureTower', val: StructureTower },
     { name: 'StructureWall', val: StructureWall },
-    { name: 'Tombstone', val: Tombstone },
+    { name: 'Tombstone', val: Tombstone }
   ],
+
+  intents: new Set([
+    'Game.notify',
+    'Market.cancelOrder',
+    'Market.changeOrderPrice',
+    'Market.createOrder',
+    'Market.deal',
+    'Market.extendOrder',
+    'ConstructionSite.remove',
+    'Creep.attack',
+    'Creep.attackController',
+    'Creep.build',
+    'Creep.claimController',
+    'Creep.dismantle',
+    'Creep.drop',
+    'Creep.generateSafeMode',
+    'Creep.harvest',
+    'Creep.heal',
+    'Creep.move',
+    'Creep.notifyWhenAttacked',
+    'Creep.pickup',
+    'Creep.rangedAttack',
+    'Creep.rangedHeal',
+    'Creep.rangedMassAttack',
+    'Creep.repair',
+    'Creep.reserveController',
+    'Creep.signController',
+    'Creep.suicide',
+    'Creep.transfer',
+    'Creep.upgradeController',
+    'Creep.withdraw',
+    'Flag.remove',
+    'Flag.setColor',
+    'Flag.setPosition',
+    'OwnedStructure.destroy',
+    'OwnedStructure.notifyWhenAttacked',
+    'PowerCreep.delete',
+    'PowerCreep.drop',
+    'PowerCreep.enableRoom',
+    'PowerCreep.move',
+    'PowerCreep.notifyWhenAttacked',
+    'PowerCreep.pickup',
+    'PowerCreep.renew',
+    'PowerCreep.spawn',
+    'PowerCreep.suicide',
+    'PowerCreep.transfer',
+    'PowerCreep.upgrade',
+    'PowerCreep.usePower',
+    'PowerCreep.withdraw',
+    'Room.createConstructionSite',
+    'Room.createFlag',
+    'RoomPosition.createConstructionSite',
+    'RoomPosition.createFlag',
+    'Structure.destroy',
+    'Structure.notifyWhenAttacked',
+    'StructureController.activateSafeMode',
+    'StructureController.unclaim',
+    'StructureExtension.destroy',
+    'StructureExtension.notifyWhenAttacked',
+    'StructureExtractor.destroy',
+    'StructureExtractor.notifyWhenAttacked',
+    'StructureFactory.destroy',
+    'StructureFactory.notifyWhenAttacked',
+    'StructureFactory.produce',
+    'StructureInvaderCore.destroy',
+    'StructureInvaderCore.notifyWhenAttacked',
+    'StructureKeeperLair.destroy',
+    'StructureKeeperLair.notifyWhenAttacked',
+    'StructureLab.destroy',
+    'StructureLab.notifyWhenAttacked',
+    'StructureLab.boostCreep',
+    'StructureLab.reverseReaction',
+    'StructureLab.runReaction',
+    'StructureLab.unboostCreep',
+    'StructureLink.destroy',
+    'StructureLink.notifyWhenAttacked',
+    'StructureLink.transferEnergy',
+    'StructureNuker.destroy',
+    'StructureNuker.notifyWhenAttacked',
+    'StructureNuker.launchNuke',
+    'StructureObserver.destroy',
+    'StructureObserver.notifyWhenAttacked',
+    'StructureObserver.observe',
+    'StructurePowerBank.destroy',
+    'StructurePowerBank.notifyWhenAttacked',
+    'StructurePowerSpawn.destroy',
+    'StructurePowerSpawn.notifyWhenAttacked',
+    'StructurePowerSpawn.processPower',
+    'StructurePortal.destroy',
+    'StructurePortal.notifyWhenAttacked',
+    'StructureRampart.destroy',
+    'StructureRampart.notifyWhenAttacked',
+    'StructureRampart.setPublic',
+    'StructureRoad.destroy',
+    'StructureRoad.notifyWhenAttacked',
+    'StructureSpawn.destroy',
+    'StructureSpawn.notifyWhenAttacked',
+    'StructureSpawn.createCreep',
+    'StructureSpawn.spawnCreep',
+    'StructureSpawn.recycleCreep',
+    'StructureSpawn.renewCreep',
+    'StructureSpawn.Spawning.cancel',
+    'StructureSpawn.Spawning.setDirections',
+    'StructureStorage.destroy',
+    'StructureStorage.notifyWhenAttacked',
+    'StructureTerminal.destroy',
+    'StructureTerminal.notifyWhenAttacked',
+    'StructureTerminal.send',
+    'StructureTower.destroy',
+    'StructureTower.notifyWhenAttacked',
+    'StructureTower.heal',
+    'StructureTower.attack',
+    'StructureTower.repair',
+    'StructureWall.destroy',
+    'StructureWall.notifyWhenAttacked',
+  ]),
 
   checkMapItem(functionName, map = Memory.profiler.map) {
     if (!map[functionName]) {
       map[functionName] = {
         time: 0,
         calls: 0,
+        intents: 0,
+        intentCalls: 0,
         subs: {},
       };
     }
   },
 
-  record(functionName, time, parent) {
+  record(functionName, time, intents, intentCalls, parent) {
     this.checkMapItem(functionName);
     Memory.profiler.map[functionName].calls++;
     Memory.profiler.map[functionName].time += time;
+    Memory.profiler.map[functionName].intents += intents;
+    Memory.profiler.map[functionName].intentCalls += intentCalls;
     if (parent) {
       this.checkMapItem(parent);
       this.checkMapItem(functionName, Memory.profiler.map[parent].subs);
       Memory.profiler.map[parent].subs[functionName].calls++;
       Memory.profiler.map[parent].subs[functionName].time += time;
+      Memory.profiler.map[parent].subs[functionName].intents += intents;
+      Memory.profiler.map[parent].subs[functionName].intentCalls += intentCalls;
     }
   },
 

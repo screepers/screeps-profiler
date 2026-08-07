@@ -220,6 +220,9 @@ The plain text format contains a table representing the call stack of the profil
 * `calls`: The number of times each function was invoked while the profiler was running
 * `time`: The total CPU consumed by each function (inclusive of all profiled callees) while the profiler was running
 * `avg`: The average CPU used by each function (`time / calls`)
+* `intents`: The number of intents registered by each function (inclusive of all profiled callees)
+  * **WARNING:** The profiler is not able to determine when a registered intent from one API call replaces a previously-registered intent (ex: calling `Creep.move()` multiple times on the same creep can only register at most one intent). As such, the figures reported here should be treated as an upper bound.
+* `function`: The names of each function
 
 Below is a sample output of `Game.profiler.profile(1000)`
 
@@ -283,7 +286,13 @@ Plain text outputs can be analyzed directly from the in-game console or notifica
 
 The callgrind format is an alternative text-based format. While it requires the use of a third-party tool to analyze effectively, it provides far more utility than the plain text format. Going back to the example from the "Plain text format" section, if the callgrind format were used instead, it wouldn't be necessary to run the profiler a second time to isolate `Spawn.work`.
 
-The recommended way to analyze this output is with a call graph viewer such as [KCachegrind](https://kcachegrind.github.io/html/Home.html). If a pre-compiled Kcachegrind binary is not available for your platform and you do not wish to build it from source, there are [alternatives](https://valgrind.org/downloads/guis.html) that may be easier to set up.
+The recommended way to analyze callgrind files is with a call graph viewer such as [KCachegrind](https://kcachegrind.github.io/html/Home.html).
+
+If a pre-compiled Kcachegrind binary is not available for your platform and you do not wish to build it from source, there are [alternatives](https://valgrind.org/downloads/guis.html) that may be easier to set up.
+
+On Windows, you can use [QCachegrind](https://sourceforge.net/projects/qcachegrindwin) to visualise the profiling result. That requires MSVC 2010 x86 redistributable, and download links in theREADME are outdated. You can get an official compatible redistributable [here](https://www.microsoft.com/en-us/download/details.aspx?id=26999).
+
+On Windows, you can use [QCacheGrind](https://sourceforge.net/projects/qcachegrindwin) to visualise the profiling result. That requires MSVC 2010 x86 redistributable, and download links in readme are outdated. But you can get an official compatible redistributable [here](https://www.microsoft.com/en-us/download/details.aspx?id=26999).
 
 Here is a sample callgrind output opened in [KCachegrind](https://kcachegrind.github.io/html/Home.html):
 
@@ -291,7 +300,17 @@ Here is a sample callgrind output opened in [KCachegrind](https://kcachegrind.gi
 
 An alternative to a call graph viewer is to convert the callgrind output to a [DOT file](https://en.wikipedia.org/wiki/DOT_(graph_description_language)) using a tool such as [gprof2dot](https://github.com/jrfonseca/gprof2dot). The DOT file can then be visualized or converted into an image/PDF using [Graphviz](https://graphviz.org/).
 
-**Note:** In the callgrind format, time/cost is measured in nanoseconds. `1 Screeps CPU unit = 1 ms = 1,000,000 ns`.
+The following "events" (stats) are reported in the callgrind format:
+* Time (ns): Total CPU usage (in nanoseconds)
+* Intent Time (ns): Additional CPU usage from registered intents (in nanoseconds)
+  * Each intent adds 200,000 ns (0.2 CPU) to the total cost
+  * Equivalent to `200000 * Registered Intents`
+* Overhead Time (ns): The difference between Time and Intent Time (in nanoseconds)
+* Registered Intents: The number of intents registered (the number of Intent Function Calls that returned an `OK` result)
+  * **WARNING:** The profiler is not able to determine when a registered intent from one API call replaces a previously-registered intent (ex: calling `Creep.move()` multiple times on the same creep can only register at most one intent). As such, the figures reported here should be treated as an upper bound.
+* Intent Function Calls: The number of calls made to game API functions that can register intents
+
+**Note:** CPU usage in this format is measured in nanoseconds. `1 Screeps CPU unit = 1 ms = 1,000,000 ns`.
 
 For more details on the callgrind file format, see the [Callgrind Format Specification](https://valgrind.org/docs/manual/cl-format.html).
 

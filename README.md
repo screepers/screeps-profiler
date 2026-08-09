@@ -290,9 +290,7 @@ The recommended way to analyze callgrind files is with a call graph viewer such 
 
 If a pre-compiled Kcachegrind binary is not available for your platform and you do not wish to build it from source, there are [alternatives](https://valgrind.org/downloads/guis.html) that may be easier to set up.
 
-On Windows, you can use [QCachegrind](https://sourceforge.net/projects/qcachegrindwin) to visualise the profiling result. That requires MSVC 2010 x86 redistributable, and download links in theREADME are outdated. You can get an official compatible redistributable [here](https://www.microsoft.com/en-us/download/details.aspx?id=26999).
-
-On Windows, you can use [QCacheGrind](https://sourceforge.net/projects/qcachegrindwin) to visualise the profiling result. That requires MSVC 2010 x86 redistributable, and download links in readme are outdated. But you can get an official compatible redistributable [here](https://www.microsoft.com/en-us/download/details.aspx?id=26999).
+On Windows, you can use [QCachegrind](https://sourceforge.net/projects/qcachegrindwin) to visualise the profiling result. That requires MSVC 2010 x86 redistributable, and download links in the README are outdated. You can get an official compatible redistributable [here](https://www.microsoft.com/en-us/download/details.aspx?id=26999).
 
 Here is a sample callgrind output opened in [KCachegrind](https://kcachegrind.github.io/html/Home.html):
 

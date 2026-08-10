@@ -23,14 +23,19 @@ jobs:
           package-manager-cache: false
 
       - name: Verify release tag matches package version
+        env:
+          TAG: ${{ github.event.release.tag_name }}
         run: |
-          TAG="${{ github.event.release.tag_name }}"
-          TAG="${TAG#v}"
-          PKG_VERSION=$(node -p "require('./package.json').version")
-          if [ "$TAG" != "$PKG_VERSION" ]; then
-            echo "Release tag ($TAG) does not match package.json version ($PKG_VERSION)"
-            exit 1
-          fi
+          node <<'EOF'
+          const tag = (process.env.TAG || '').replace(/^v/, '');
+          const version = require('./package.json').version;
+          if (tag !== version) {
+            console.error(
+              `Release tag (${tag}) does not match package.json version (${version})`
+            );
+            process.exit(1);
+          }
+          EOF
 
       - run: npm ci
       - run: npm test

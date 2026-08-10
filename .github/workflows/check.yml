@@ -6,6 +6,9 @@ on:
     branches:
     - master
 
+permissions:
+  contents: read
+
 jobs:
   build:
 
@@ -18,7 +21,7 @@ jobs:
         with:
           node-version-file: .node-version
           cache: npm
-      - run: npm install
+      - run: npm ci
       - run: npm test
       - name: Coveralls GitHub Action
         uses: coverallsapp/github-action@v2.3.8

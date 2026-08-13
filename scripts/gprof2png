@@ -1,0 +1,13 @@
+#!/bin/sh
+
+# This needs gprof2dot and dot installed
+
+for input in $@; do
+  filename=$(basename -- "$input")
+  dirname=$(dirname -- "$input")
+
+  tmpfile=$(mktemp -t "$filename.dot")
+  trap 'rm -f "$tmpfile"' EXIT INT HUP TERM
+
+  gprof2dot --format=callgrind --output="$tmpfile" "$input" && dot -Tpng "$tmpfile" -o "$dirname/$filename.png"
+done
